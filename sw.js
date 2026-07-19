@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'routine-board-v3';
+const CACHE = 'routine-board-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,33 @@ const ASSETS = [
   './assets/mascot-normal.png',
   './assets/mascot-wave.png',
   './assets/mascot-cheer.png',
+  './assets/mascot-pig.png',
+  './assets/icons/office.png',
+  './assets/icons/calendar.png',
+  './assets/icons/stretch.png',
+  './assets/icons/toilet.png',
+  './assets/icons/broom.png',
+  './assets/icons/bottle.png',
+  './assets/icons/bath.png',
+  './assets/icons/bed.png',
+  './assets/icons/clock.png',
+  './assets/icons/pill.png',
+  './assets/icons/coffee.png',
+  './assets/icons/book.png',
+  './assets/icons/shoes.png',
+  './assets/icons/tooth.png',
+  './assets/icons/laundry.png',
+  './assets/icons/tomato.png',
+  './assets/farm/balcony.png',
+  './assets/farm/garden.png',
+  './assets/farm/field.png',
+  './assets/farm/rainshelter.png',
+  './assets/farm/greenhouse.png',
+  './assets/farm/multihouse.png',
+  './assets/farm/smart.png',
+  './assets/farm/stand.png',
+  './assets/farm/bighouse.png',
+  './assets/farm/tourism.png',
 ];
 
 self.addEventListener('install', function (e) {

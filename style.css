@@ -137,7 +137,7 @@ main {
   padding: 1px 5px;
 }
 .cell .icon { font-size: 30px; line-height: 1; }
-.cell img.icon { width: 36px; height: 36px; object-fit: contain; }
+.cell img.icon { width: 44px; height: 44px; object-fit: contain; }
 .cell .title {
   font-size: 12px;
   font-weight: 600;
@@ -285,8 +285,8 @@ main {
   position: absolute;
   left: 10px;
   bottom: 8px;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
 }
 .farm-stage-name {
   text-align: center;
