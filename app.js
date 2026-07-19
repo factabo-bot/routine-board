@@ -23,20 +23,14 @@ const ICON_LIB = {
   shoes: 'くつ', tooth: '歯みがき', laundry: 'せんたく', tomato: 'トマト',
 };
 
-// ToDoシティの建物（assets/city/<key>.png）。needは累計完了数
-const CITY_BUILDINGS = [
-  { key: 'house', label: '小さな家', need: 1 },
-  { key: 'tree', label: '公園の木', need: 3 },
-  { key: 'bakery', label: 'パン屋', need: 5 },
-  { key: 'cafe', label: 'カフェ', need: 8 },
-  { key: 'flower', label: '花屋', need: 11 },
-  { key: 'fountain', label: '噴水広場', need: 15 },
-  { key: 'school', label: '学校', need: 19 },
-  { key: 'greenhouse', label: 'トマトのハウス', need: 24 },
-  { key: 'office', label: 'オフィスビル', need: 29 },
-  { key: 'clock', label: '時計台', need: 35 },
-  { key: 'ferris', label: '観覧車', need: 41 },
-  { key: 'castle', label: 'お城', need: 48 },
+// ToDoファームの発展段階（assets/farm/<key>.png）。needは累計完了数
+const FARM_STAGES = [
+  { key: 'balcony', label: 'ベランダ菜園', need: 0 },
+  { key: 'garden', label: '貸農園', need: 6 },
+  { key: 'field', label: '露地栽培', need: 14 },
+  { key: 'rainshelter', label: '雨よけ栽培', need: 24 },
+  { key: 'greenhouse', label: 'ビニールハウス', need: 36 },
+  { key: 'smart', label: 'スマート農業', need: 50 },
 ];
 
 // マスコット（トマトのキャラ・生成画像を背景透過に加工したもの）
@@ -95,7 +89,7 @@ function uid() {
 
 // ========== データ ==========
 function defaultState() {
-  return { version: 1, routines: [], checks: {}, todos: [], meta: { lastExport: null, cityDone: 0 } };
+  return { version: 1, routines: [], checks: {}, todos: [], meta: { lastExport: null, farmDone: 0 } };
 }
 
 function mergeState(data) {
@@ -131,7 +125,7 @@ let dlgDays = [];
 let dlgIcon = null;
 
 // ========== タブ切替 ==========
-const VIEWS = ['board', 'city', 'settings'];
+const VIEWS = ['board', 'farm', 'settings'];
 
 function showView(name) {
   VIEWS.forEach(function (v) {
@@ -141,7 +135,7 @@ function showView(name) {
     b.classList.toggle('active', b.dataset.view === name);
   });
   if (name === 'board') renderBoard();
-  if (name === 'city') renderCity();
+  if (name === 'farm') renderFarm();
   if (name === 'settings') renderSettings();
 }
 
@@ -249,42 +243,52 @@ function renderBoard() {
   renderGrid();
 }
 
-// ========== ToDoシティ ==========
-// ToDoを完了した累計数（meta.cityDone）に応じて建物が増えていく
-function renderCity() {
-  const pts = state.meta.cityDone;
-  const grid = $('city-grid');
-  grid.textContent = '';
-  let builtCount = 0;
-  let next = null;
-  CITY_BUILDINGS.forEach(function (b) {
-    const slot = el('div', 'city-slot');
-    if (pts >= b.need) {
-      slot.classList.add('built');
-      const img = el('img');
-      img.src = 'assets/city/' + b.key + '.png';
-      img.alt = b.label;
-      slot.appendChild(img);
-      builtCount++;
-    } else {
-      slot.classList.add('locked');
-      if (!next) {
-        next = b;
-        slot.textContent = 'あと' + (b.need - pts);
-      } else {
-        slot.textContent = '・';
-      }
-    }
-    grid.appendChild(slot);
-  });
+// ========== ToDoファーム ==========
+// ToDoを完了した累計数（meta.farmDone）に応じて畑が発展していく
+let lastFarmStage = null;
 
-  let status;
-  if (builtCount === CITY_BUILDINGS.length) {
-    status = '街が完成した！（累計 ' + pts + ' 個完了）';
-  } else {
-    status = builtCount + ' / ' + CITY_BUILDINGS.length + ' 棟 ・ つぎの「' + next.label + '」まで あと ' + (next.need - pts) + ' 個';
+function renderFarm() {
+  const pts = state.meta.farmDone;
+  let cur = FARM_STAGES[0];
+  let next = null;
+  for (let i = 0; i < FARM_STAGES.length; i++) {
+    if (pts >= FARM_STAGES[i].need) {
+      cur = FARM_STAGES[i];
+    } else {
+      next = FARM_STAGES[i];
+      break;
+    }
   }
-  $('city-status').textContent = status;
+
+  const img = $('farm-stage-img');
+  img.src = 'assets/farm/' + cur.key + '.png';
+  img.alt = cur.label;
+  // 段階が上がった瞬間だけ演出
+  if (lastFarmStage && lastFarmStage !== cur.key) {
+    img.classList.remove('farm-pop');
+    void img.offsetWidth;
+    img.classList.add('farm-pop');
+  }
+  lastFarmStage = cur.key;
+
+  $('farm-stage-name').textContent = cur.label;
+
+  let ratio = 1;
+  let status;
+  if (next) {
+    ratio = (pts - cur.need) / (next.need - cur.need);
+    status = 'つぎの「' + next.label + '」まで あと ' + (next.need - pts) + ' 個（累計 ' + pts + ' 個完了）';
+  } else {
+    status = 'スマート農業まで到達！（累計 ' + pts + ' 個完了）';
+  }
+  $('farm-bar').style.width = Math.round(ratio * 100) + '%';
+  $('farm-status').textContent = status;
+
+  const steps = $('farm-steps');
+  steps.textContent = '';
+  FARM_STAGES.forEach(function (s) {
+    steps.appendChild(el('span', 'farm-step' + (pts >= s.need ? ' reached' : '')));
+  });
 
   const list = $('todo-list');
   list.textContent = '';
@@ -296,9 +300,9 @@ function renderCity() {
     cb.checked = t.done;
     cb.addEventListener('change', function () {
       t.done = cb.checked;
-      state.meta.cityDone = Math.max(0, state.meta.cityDone + (cb.checked ? 1 : -1));
+      state.meta.farmDone = Math.max(0, state.meta.farmDone + (cb.checked ? 1 : -1));
       saveState();
-      renderCity();
+      renderFarm();
     });
     label.appendChild(cb);
     label.appendChild(el('span', 'todo-title', t.title));
@@ -306,7 +310,7 @@ function renderCity() {
     del.addEventListener('click', function () {
       state.todos = state.todos.filter(function (x) { return x.id !== t.id; });
       saveState();
-      renderCity();
+      renderFarm();
     });
     li.appendChild(label);
     li.appendChild(del);
@@ -322,16 +326,16 @@ $('todo-form').addEventListener('submit', function (e) {
   state.todos.push({ id: uid(), title: title, done: false, createdAt: todayStr() });
   input.value = '';
   saveState();
-  renderCity();
+  renderFarm();
 });
 
 $('todo-clear').addEventListener('click', function () {
   const done = state.todos.filter(function (t) { return t.done; }).length;
   if (!done) { alert('完了済みのToDoはありません'); return; }
-  if (!confirm('完了済みの ' + done + ' 件を削除します。よろしいですか？（街の発展は減りません）')) return;
+  if (!confirm('完了済みの ' + done + ' 件を削除します。よろしいですか？（畑の発展は減りません）')) return;
   state.todos = state.todos.filter(function (t) { return !t.done; });
   saveState();
-  renderCity();
+  renderFarm();
 });
 
 // ========== 設定: ルーティン一覧 ==========
