@@ -132,8 +132,9 @@ function renderDateStrip() {
     });
     strip.appendChild(btn);
   }
+  // 選択日をストリップ中央へ（scrollIntoViewはページ全体まで動かすことがあるため使わない）
   const sel = strip.querySelector('.selected');
-  if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (sel) strip.scrollLeft = sel.offsetLeft - (strip.clientWidth - sel.offsetWidth) / 2;
 }
 
 function renderGrid() {
