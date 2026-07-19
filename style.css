@@ -39,19 +39,18 @@ main {
 }
 .tab-btn {
   flex: 1;
-  padding: 8px 0 10px;
+  padding: 9px 0 10px;
   background: none;
   border: none;
-  font-size: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  color: #999;
-  filter: grayscale(1) opacity(.55);
+  gap: 3px;
+  color: #A5A5A0;
 }
+.tab-btn svg { width: 22px; height: 22px; }
 .tab-btn span { font-size: 11px; font-weight: 600; }
-.tab-btn.active { color: #111; filter: none; }
+.tab-btn.active { color: #111; }
 
 /* ===== 日付ストリップ ===== */
 .date-strip {
@@ -138,6 +137,7 @@ main {
   padding: 1px 5px;
 }
 .cell .icon { font-size: 30px; line-height: 1; }
+.cell img.icon { width: 36px; height: 36px; object-fit: contain; }
 .cell .title {
   font-size: 12px;
   font-weight: 600;
@@ -228,49 +228,58 @@ main {
   .mascot-turn, .mascot-cheer { animation: none; }
 }
 
-/* ===== ToDoレーシング ===== */
-.race-track {
+/* ===== ToDoシティ ===== */
+.city-card {
   background: #fff;
   border: 1.5px solid #DDDDD8;
   border-radius: 14px;
   padding: 12px;
   margin-bottom: 12px;
 }
-.race-road {
-  position: relative;
-  height: 56px;
-  background: #EFEFEA;
-  border-radius: 10px;
-}
-.race-road::before {
-  content: '';
-  position: absolute;
-  left: 8px; right: 8px; top: 50%;
-  border-top: 3px dashed #C9C9C1;
-  transform: translateY(-50%);
-}
-#race-car {
-  position: absolute;
-  top: 50%;
-  left: 8px;
-  transform: translateY(-50%);
-  font-size: 28px;
-  line-height: 1;
-  transition: left .5s ease;
-  z-index: 1;
-}
-.race-goal {
-  position: absolute;
-  right: 6px; top: 50%;
-  transform: translateY(-50%);
-  font-size: 22px;
-  line-height: 1;
-}
-.race-status {
-  text-align: center;
+.city-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 700;
   font-size: 14px;
+  margin-bottom: 10px;
+}
+.mascot-city { width: 26px; height: 26px; }
+.city-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.city-slot {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+.city-slot.locked {
+  border: 1.5px dashed #D5D5CF;
+  color: #B9B9B3;
+  font-size: 11px;
+  font-weight: 700;
+}
+.city-slot.built img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  animation: city-pop .35s ease-out;
+}
+@keyframes city-pop {
+  from { transform: scale(.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.city-status {
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
   margin-top: 10px;
+  line-height: 1.7;
+  color: #333;
 }
 
 .todo-form { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -331,6 +340,7 @@ main {
   padding: 8px 10px;
 }
 .routine-icon { font-size: 22px; line-height: 1; }
+img.routine-icon { width: 26px; height: 26px; object-fit: contain; }
 .routine-info { flex: 1; min-width: 0; }
 .routine-title { font-size: 14px; font-weight: 700; word-break: break-word; }
 .routine-meta { font-size: 11px; color: #888; margin-top: 1px; }
@@ -400,15 +410,24 @@ dialog label input {
   font-family: inherit;
 }
 .field-label { display: block; margin-top: 12px; font-weight: 600; font-size: 13px; }
-.icon-picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.icon-pick {
-  font-size: 19px;
-  background: #fff;
-  border: 1.5px solid #DDDDD8;
-  border-radius: 8px;
-  padding: 4px 8px;
-  line-height: 1.2;
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
 }
+.icon-cell {
+  aspect-ratio: 1;
+  border: 1.5px solid #DDDDD8;
+  border-radius: 10px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  min-width: 0;
+}
+.icon-cell img { width: 100%; height: 100%; object-fit: contain; }
+.icon-cell.selected { outline: 3px solid #111; outline-offset: 1px; }
 .color-picks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
 .swatch {
   width: 32px; height: 32px;

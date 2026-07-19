@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '1.2';
+const APP_VERSION = '2.0';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -13,8 +13,31 @@ const COLOR_VALUES = {
   gray: '#EAEAE6',
 };
 const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
-const ICON_PICKS = ['⏰', '🛏️', '💊', '🏃', '🍱', '☕', '📚', '🌙', '🚶', '🧹', '💧', '🦷', '🎮', '🌱'];
 const DATE_STRIP_DAYS = 14;
+
+// ルーティンアイコンのライブラリ（assets/icons/<key>.png）
+const ICON_LIB = {
+  office: '会社', calendar: 'カレンダー', stretch: 'ストレッチ', toilet: 'トイレ',
+  broom: 'そうじ', bottle: '水分', bath: 'おふろ', bed: 'ベッド',
+  clock: '時計', pill: 'くすり', coffee: 'コーヒー', book: '本',
+  shoes: 'くつ', tooth: '歯みがき', laundry: 'せんたく', tomato: 'トマト',
+};
+
+// ToDoシティの建物（assets/city/<key>.png）。needは累計完了数
+const CITY_BUILDINGS = [
+  { key: 'house', label: '小さな家', need: 1 },
+  { key: 'tree', label: '公園の木', need: 3 },
+  { key: 'bakery', label: 'パン屋', need: 5 },
+  { key: 'cafe', label: 'カフェ', need: 8 },
+  { key: 'flower', label: '花屋', need: 11 },
+  { key: 'fountain', label: '噴水広場', need: 15 },
+  { key: 'school', label: '学校', need: 19 },
+  { key: 'greenhouse', label: 'トマトのハウス', need: 24 },
+  { key: 'office', label: 'オフィスビル', need: 29 },
+  { key: 'clock', label: '時計台', need: 35 },
+  { key: 'ferris', label: '観覧車', need: 41 },
+  { key: 'castle', label: 'お城', need: 48 },
+];
 
 // マスコット（トマトのキャラ・生成画像を背景透過に加工したもの）
 const MASCOT_SRC = {
@@ -72,7 +95,13 @@ function uid() {
 
 // ========== データ ==========
 function defaultState() {
-  return { version: 1, routines: [], checks: {}, todos: [], meta: { lastExport: null } };
+  return { version: 1, routines: [], checks: {}, todos: [], meta: { lastExport: null, cityDone: 0 } };
+}
+
+function mergeState(data) {
+  const merged = Object.assign(defaultState(), data);
+  merged.meta = Object.assign(defaultState().meta, data.meta || {});
+  return merged;
 }
 
 function loadState() {
@@ -81,7 +110,7 @@ function loadState() {
   try {
     const data = JSON.parse(raw);
     if (!data || data.version !== 1) throw new Error('unsupported version');
-    return Object.assign(defaultState(), data);
+    return mergeState(data);
   } catch (e) {
     // 壊れたデータを黙って上書きしないよう退避してから初期化する
     localStorage.setItem(STORAGE_KEY + '-broken', raw);
@@ -99,9 +128,10 @@ let lastToday = todayStr();
 let editingId = null; // 編集中のルーティンID（nullなら新規追加）
 let dlgColor = 'yellow';
 let dlgDays = [];
+let dlgIcon = null;
 
 // ========== タブ切替 ==========
-const VIEWS = ['board', 'race', 'settings'];
+const VIEWS = ['board', 'city', 'settings'];
 
 function showView(name) {
   VIEWS.forEach(function (v) {
@@ -111,8 +141,19 @@ function showView(name) {
     b.classList.toggle('active', b.dataset.view === name);
   });
   if (name === 'board') renderBoard();
-  if (name === 'race') renderRace();
+  if (name === 'city') renderCity();
   if (name === 'settings') renderSettings();
+}
+
+// ルーティンアイコン（ライブラリ画像。旧データの絵文字はそのまま文字表示）
+function routineIconEl(r, cls) {
+  if (ICON_LIB[r.icon]) {
+    const img = el('img', cls);
+    img.src = 'assets/icons/' + r.icon + '.png';
+    img.alt = ICON_LIB[r.icon];
+    return img;
+  }
+  return el('span', cls, r.icon || '・');
 }
 
 // ========== 盤面 ==========
@@ -181,7 +222,7 @@ function renderGrid() {
     cell.style.background = COLOR_VALUES[r.color] || COLOR_VALUES.white;
     if (checked.includes(r.id)) cell.classList.add('checked');
     if (r.time) cell.appendChild(el('span', 'time', r.time));
-    cell.appendChild(el('span', 'icon', r.icon || '✅'));
+    cell.appendChild(routineIconEl(r, 'icon'));
     cell.appendChild(el('span', 'title', r.title));
     cell.appendChild(el('span', 'check', '✓'));
     cell.addEventListener('click', function () { toggleCheck(selectedDate, r.id); });
@@ -208,18 +249,42 @@ function renderBoard() {
   renderGrid();
 }
 
-// ========== ToDoレーシング ==========
-function renderRace() {
-  const total = state.todos.length;
-  const done = state.todos.filter(function (t) { return t.done; }).length;
-  const p = total ? done / total : 0;
-  $('race-car').style.left = 'calc(8px + ' + p + ' * (100% - 88px))';
+// ========== ToDoシティ ==========
+// ToDoを完了した累計数（meta.cityDone）に応じて建物が増えていく
+function renderCity() {
+  const pts = state.meta.cityDone;
+  const grid = $('city-grid');
+  grid.textContent = '';
+  let builtCount = 0;
+  let next = null;
+  CITY_BUILDINGS.forEach(function (b) {
+    const slot = el('div', 'city-slot');
+    if (pts >= b.need) {
+      slot.classList.add('built');
+      const img = el('img');
+      img.src = 'assets/city/' + b.key + '.png';
+      img.alt = b.label;
+      slot.appendChild(img);
+      builtCount++;
+    } else {
+      slot.classList.add('locked');
+      if (!next) {
+        next = b;
+        slot.textContent = 'あと' + (b.need - pts);
+      } else {
+        slot.textContent = '・';
+      }
+    }
+    grid.appendChild(slot);
+  });
 
   let status;
-  if (total === 0) status = 'ToDoを追加してレース開始';
-  else if (done === total) status = '🏁 ゴール！ ' + done + ' / ' + total + ' 完了';
-  else status = done + ' / ' + total + ' 完了';
-  $('race-status').textContent = status;
+  if (builtCount === CITY_BUILDINGS.length) {
+    status = '街が完成した！（累計 ' + pts + ' 個完了）';
+  } else {
+    status = builtCount + ' / ' + CITY_BUILDINGS.length + ' 棟 ・ つぎの「' + next.label + '」まで あと ' + (next.need - pts) + ' 個';
+  }
+  $('city-status').textContent = status;
 
   const list = $('todo-list');
   list.textContent = '';
@@ -231,8 +296,9 @@ function renderRace() {
     cb.checked = t.done;
     cb.addEventListener('change', function () {
       t.done = cb.checked;
+      state.meta.cityDone = Math.max(0, state.meta.cityDone + (cb.checked ? 1 : -1));
       saveState();
-      renderRace();
+      renderCity();
     });
     label.appendChild(cb);
     label.appendChild(el('span', 'todo-title', t.title));
@@ -240,7 +306,7 @@ function renderRace() {
     del.addEventListener('click', function () {
       state.todos = state.todos.filter(function (x) { return x.id !== t.id; });
       saveState();
-      renderRace();
+      renderCity();
     });
     li.appendChild(label);
     li.appendChild(del);
@@ -256,16 +322,16 @@ $('todo-form').addEventListener('submit', function (e) {
   state.todos.push({ id: uid(), title: title, done: false, createdAt: todayStr() });
   input.value = '';
   saveState();
-  renderRace();
+  renderCity();
 });
 
 $('todo-clear').addEventListener('click', function () {
   const done = state.todos.filter(function (t) { return t.done; }).length;
   if (!done) { alert('完了済みのToDoはありません'); return; }
-  if (!confirm('完了済みの ' + done + ' 件を削除します。よろしいですか？')) return;
+  if (!confirm('完了済みの ' + done + ' 件を削除します。よろしいですか？（街の発展は減りません）')) return;
   state.todos = state.todos.filter(function (t) { return !t.done; });
   saveState();
-  renderRace();
+  renderCity();
 });
 
 // ========== 設定: ルーティン一覧 ==========
@@ -296,7 +362,7 @@ function renderRoutineList() {
   list.textContent = '';
   state.routines.forEach(function (r, idx) {
     const li = el('li', 'routine-item');
-    li.appendChild(el('span', 'routine-icon', r.icon || '✅'));
+    li.appendChild(routineIconEl(r, 'routine-icon'));
     const info = el('div', 'routine-info');
     info.appendChild(el('div', 'routine-title', r.title));
     info.appendChild(el('div', 'routine-meta', (r.time ? r.time + '　' : '') + daysSummary(r.days)));
@@ -341,13 +407,34 @@ function openRoutineDialog(id) {
   const r = id ? state.routines.find(function (x) { return x.id === id; }) : null;
   $('routine-dialog-title').textContent = r ? 'ルーティンを編集' : 'ルーティンを追加';
   $('rf-title').value = r ? r.title : '';
-  $('rf-icon').value = r ? r.icon : '';
   $('rf-time').value = r && r.time ? r.time : '';
   dlgColor = r ? r.color : 'yellow';
   dlgDays = r ? r.days.slice() : [0, 1, 2, 3, 4, 5, 6];
+  // 旧絵文字アイコンの編集時は未選択のまま＝保存しても元の絵文字を維持
+  dlgIcon = (r && ICON_LIB[r.icon]) ? r.icon : (r ? null : 'calendar');
+  renderDialogIconGrid();
   renderDialogColorPicks();
   renderDialogDayPicks();
   dlg.showModal();
+}
+
+function renderDialogIconGrid() {
+  const box = $('rf-icon-grid');
+  box.textContent = '';
+  Object.keys(ICON_LIB).forEach(function (key) {
+    const b = el('button', 'icon-cell' + (dlgIcon === key ? ' selected' : ''));
+    b.type = 'button';
+    b.title = ICON_LIB[key];
+    const img = el('img');
+    img.src = 'assets/icons/' + key + '.png';
+    img.alt = ICON_LIB[key];
+    b.appendChild(img);
+    b.addEventListener('click', function () {
+      dlgIcon = key;
+      renderDialogIconGrid();
+    });
+    box.appendChild(b);
+  });
 }
 
 function renderDialogColorPicks() {
@@ -381,16 +468,6 @@ function renderDialogDayPicks() {
   });
 }
 
-(function initIconPicks() {
-  const box = $('rf-icon-picks');
-  ICON_PICKS.forEach(function (ic) {
-    const b = el('button', 'icon-pick', ic);
-    b.type = 'button';
-    b.addEventListener('click', function () { $('rf-icon').value = ic; });
-    box.appendChild(b);
-  });
-})();
-
 $('routine-add').addEventListener('click', function () { openRoutineDialog(null); });
 $('rf-cancel').addEventListener('click', function () { dlg.close(); });
 
@@ -399,15 +476,16 @@ $('routine-form').addEventListener('submit', function (e) {
   const title = $('rf-title').value.trim();
   if (!title) return;
   if (dlgDays.length === 0) { alert('曜日を1つ以上選んでください'); return; }
+  const existing = editingId ? state.routines.find(function (x) { return x.id === editingId; }) : null;
   const data = {
     title: title,
-    icon: $('rf-icon').value.trim() || '✅',
+    icon: dlgIcon || (existing ? existing.icon : 'calendar'),
     color: dlgColor,
     time: $('rf-time').value || null,
     days: dlgDays.slice().sort(function (a, b) { return a - b; }),
   };
-  if (editingId) {
-    Object.assign(state.routines.find(function (x) { return x.id === editingId; }), data);
+  if (existing) {
+    Object.assign(existing, data);
   } else {
     state.routines.push(Object.assign({ id: uid() }, data));
   }
@@ -464,7 +542,7 @@ $('import-file').addEventListener('change', function (e) {
       return;
     }
     if (!confirm('現在のデータをファイルの内容で置き換えます。よろしいですか？')) return;
-    state = Object.assign(defaultState(), data);
+    state = mergeState(data);
     saveState();
     renderSettings();
     alert('インポートしました');
