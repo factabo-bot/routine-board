@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -22,6 +22,31 @@ const ICON_LIB = {
   clock: '時計', pill: 'くすり', coffee: 'コーヒー', book: '本',
   shoes: 'くつ', tooth: '歯みがき', laundry: 'せんたく', tomato: 'トマト',
 };
+
+// どうぶつずかん（assets/zoo/<key>.png）。ルーティンチェック1つ=1pt、10ptで1匹
+const ZOO_COST = 10;
+const ZOO_ANIMALS = [
+  { key: 'dog', label: 'いぬ' },
+  { key: 'cat', label: 'ねこ' },
+  { key: 'rabbit', label: 'うさぎ' },
+  { key: 'bear', label: 'くま' },
+  { key: 'panda', label: 'ぱんだ' },
+  { key: 'fox', label: 'きつね' },
+  { key: 'tanuki', label: 'たぬき' },
+  { key: 'squirrel', label: 'りす' },
+  { key: 'hedgehog', label: 'はりねずみ' },
+  { key: 'penguin', label: 'ぺんぎん' },
+  { key: 'bird', label: 'ことり' },
+  { key: 'owl', label: 'ふくろう' },
+  { key: 'frog', label: 'かえる' },
+  { key: 'turtle', label: 'かめ' },
+  { key: 'sheep', label: 'ひつじ' },
+  { key: 'goat', label: 'やぎ' },
+  { key: 'cow', label: 'うし' },
+  { key: 'chicken', label: 'にわとり' },
+  { key: 'duck', label: 'あひる' },
+  { key: 'mouse', label: 'ねずみ' },
+];
 
 // ToDoファームの発展段階（assets/farm/<key>.png）。needは累計完了数
 const FARM_STAGES = [
@@ -127,6 +152,7 @@ function defaultState() {
     todos: [],
     memos: {},   // 日付 → その日のメモ
     todoLog: {}, // 日付 → その日に完了したToDo数（統計用）
+    zoo: { owned: [], pos: {} }, // どうぶつ（獲得済みkeyと飾り位置）
     // ケーキチャレンジ（初期課題入り。「編集」でいつでも変更可能）
     challenge: {
       tasks: [
@@ -145,6 +171,7 @@ function mergeState(data) {
   const merged = Object.assign(defaultState(), data);
   merged.meta = Object.assign(defaultState().meta, data.meta || {});
   merged.challenge = Object.assign(defaultState().challenge, data.challenge || {});
+  merged.zoo = Object.assign(defaultState().zoo, data.zoo || {});
   return merged;
 }
 
@@ -297,7 +324,119 @@ function renderBoard() {
   renderDateStrip();
   renderGrid();
   renderMemoBox();
+  renderDeco();
 }
+
+// ========== どうぶつ（ポイント・飾りエリア・ずかん） ==========
+function zooEarnedPoints() {
+  let n = 0;
+  Object.keys(state.checks).forEach(function (ds) { n += state.checks[ds].length; });
+  return n;
+}
+
+function zooAvailablePoints() {
+  return zooEarnedPoints() - state.zoo.owned.length * ZOO_COST;
+}
+
+function zooRandomPos() {
+  return { x: 10 + Math.random() * 80, y: 20 + Math.random() * 60 };
+}
+
+function renderDeco() {
+  $('zoo-pts').textContent = 'ルーティンポイント ' + zooAvailablePoints() + ' pt';
+  const area = $('deco-area');
+  area.classList.toggle('hidden', state.zoo.owned.length === 0);
+  area.textContent = '';
+  let dirty = false;
+  state.zoo.owned.forEach(function (key) {
+    const animal = ZOO_ANIMALS.find(function (a) { return a.key === key; });
+    if (!animal) return;
+    if (!state.zoo.pos[key]) {
+      state.zoo.pos[key] = zooRandomPos();
+      dirty = true;
+    }
+    const p = state.zoo.pos[key];
+    const elm = el('span', 'deco-animal');
+    const img = el('img');
+    img.src = 'assets/zoo/' + key + '.png';
+    img.alt = animal.label;
+    img.draggable = false;
+    elm.appendChild(img);
+    elm.style.left = p.x + '%';
+    elm.style.top = p.y + '%';
+    enableDecoDrag(elm, key);
+    area.appendChild(elm);
+  });
+  if (dirty) saveState();
+}
+
+// 指でドラッグして好きな位置へ（位置は%で保存）
+function enableDecoDrag(elm, key) {
+  elm.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    elm.setPointerCapture(e.pointerId);
+    const rect = $('deco-area').getBoundingClientRect();
+    const move = function (ev) {
+      const x = Math.max(7, Math.min(93, (ev.clientX - rect.left) / rect.width * 100));
+      const y = Math.max(15, Math.min(85, (ev.clientY - rect.top) / rect.height * 100));
+      elm.style.left = x + '%';
+      elm.style.top = y + '%';
+      state.zoo.pos[key] = { x: x, y: y };
+    };
+    const up = function () {
+      elm.removeEventListener('pointermove', move);
+      elm.removeEventListener('pointerup', up);
+      elm.removeEventListener('pointercancel', up);
+      saveState();
+    };
+    elm.addEventListener('pointermove', move);
+    elm.addEventListener('pointerup', up);
+    elm.addEventListener('pointercancel', up);
+  });
+}
+
+function renderZoo() {
+  const pts = zooAvailablePoints();
+  $('zoo-status').textContent =
+    'ポイント ' + pts + ' pt ・ なかま ' + state.zoo.owned.length + ' / ' + ZOO_ANIMALS.length +
+    '\nルーティン1つ達成で1pt。' + ZOO_COST + 'ptで好きな動物をタップしてむかえられます。';
+  const grid = $('zoo-grid');
+  grid.textContent = '';
+  ZOO_ANIMALS.forEach(function (a) {
+    const owned = state.zoo.owned.includes(a.key);
+    const cell = el('button', 'zoo-cell' + (owned ? ' owned' : ''));
+    cell.type = 'button';
+    cell.title = a.label;
+    const img = el('img');
+    img.src = 'assets/zoo/' + a.key + '.png';
+    img.alt = a.label;
+    cell.appendChild(img);
+    if (!owned) {
+      cell.addEventListener('click', function () {
+        if (zooAvailablePoints() < ZOO_COST) {
+          alert('ポイントが足りません（' + ZOO_COST + 'pt 必要）');
+          return;
+        }
+        if (!confirm('「' + a.label + '」を ' + ZOO_COST + 'pt でむかえますか？')) return;
+        state.zoo.owned.push(a.key);
+        state.zoo.pos[a.key] = zooRandomPos();
+        saveState();
+        renderZoo();
+        renderDeco();
+      });
+    }
+    grid.appendChild(cell);
+  });
+}
+
+$('zoo-open').addEventListener('click', function () {
+  renderZoo();
+  $('zoo-dialog').showModal();
+});
+$('zoo-close').addEventListener('click', function () {
+  $('zoo-dialog').close();
+  renderDeco();
+});
 
 // ========== 1日メモ ==========
 function renderMemoBox() {

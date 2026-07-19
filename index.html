@@ -33,6 +33,11 @@
       <span class="memo-label">メモ</span>
       <span id="memo-text" class="memo-text"></span>
     </button>
+    <div id="deco-area" class="deco-area hidden"></div>
+    <div class="zoo-row">
+      <span id="zoo-pts" class="zoo-pts"></span>
+      <button id="zoo-open" class="btn btn-sm">どうぶつずかん</button>
+    </div>
   </section>
 
   <!-- ケーキチャレンジ -->
@@ -222,6 +227,16 @@
       <button type="submit" class="btn btn-primary">保存</button>
     </div>
   </form>
+</dialog>
+
+<!-- どうぶつずかんダイアログ -->
+<dialog id="zoo-dialog">
+  <h2>どうぶつずかん</h2>
+  <div id="zoo-status" class="stats-note"></div>
+  <div id="zoo-grid" class="zoo-grid"></div>
+  <div class="dialog-buttons">
+    <button type="button" id="zoo-close" class="btn">とじる</button>
+  </div>
 </dialog>
 
 <!-- チャレンジ編集ダイアログ -->
