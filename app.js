@@ -30,7 +30,11 @@ const FARM_STAGES = [
   { key: 'field', label: '露地栽培', need: 14 },
   { key: 'rainshelter', label: '雨よけ栽培', need: 24 },
   { key: 'greenhouse', label: 'ビニールハウス', need: 36 },
-  { key: 'smart', label: 'スマート農業', need: 50 },
+  { key: 'multihouse', label: '連棟ハウス', need: 50 },
+  { key: 'smart', label: 'スマート農業', need: 70 },
+  { key: 'stand', label: '直売所オープン', need: 95 },
+  { key: 'bighouse', label: '大型温室', need: 125 },
+  { key: 'tourism', label: '観光農園', need: 160 },
 ];
 
 // マスコット（トマトのキャラ・生成画像を背景透過に加工したもの）
@@ -38,6 +42,7 @@ const MASCOT_SRC = {
   normal: 'assets/mascot-normal.png',
   wave: 'assets/mascot-wave.png',
   cheer: 'assets/mascot-cheer.png',
+  pig: 'assets/mascot-pig.png',
 };
 
 function mascotImg(pose) {
@@ -232,7 +237,10 @@ function renderGrid() {
   // 全マス達成のお祝い
   if (routines.length > 0 && doneCount === routines.length) {
     const box = el('div', 'board-done grid-note');
-    box.appendChild(mascotEl('mascot-cheer', 'cheer'));
+    const chars = el('div', 'board-done-chars');
+    chars.appendChild(mascotEl('mascot-cheer', 'cheer'));
+    chars.appendChild(mascotEl('mascot-cheer-pig', 'pig'));
+    box.appendChild(chars);
     box.appendChild(el('p', undefined, 'ぜんぶ達成！'));
     grid.appendChild(box);
   }
@@ -250,15 +258,20 @@ let lastFarmStage = null;
 function renderFarm() {
   const pts = state.meta.farmDone;
   let cur = FARM_STAGES[0];
+  let curIdx = 0;
   let next = null;
   for (let i = 0; i < FARM_STAGES.length; i++) {
     if (pts >= FARM_STAGES[i].need) {
       cur = FARM_STAGES[i];
+      curIdx = i;
     } else {
       next = FARM_STAGES[i];
       break;
     }
   }
+
+  // ぶたさんは露地栽培（3段階目）から畑の住人になる
+  $('farm-pig').classList.toggle('hidden', curIdx < 2);
 
   const img = $('farm-stage-img');
   img.src = 'assets/farm/' + cur.key + '.png';
@@ -279,7 +292,7 @@ function renderFarm() {
     ratio = (pts - cur.need) / (next.need - cur.need);
     status = 'つぎの「' + next.label + '」まで あと ' + (next.need - pts) + ' 個（累計 ' + pts + ' 個完了）';
   } else {
-    status = 'スマート農業まで到達！（累計 ' + pts + ' 個完了）';
+    status = '観光農園まで到達！（累計 ' + pts + ' 個完了）';
   }
   $('farm-bar').style.width = Math.round(ratio * 100) + '%';
   $('farm-status').textContent = status;
@@ -598,5 +611,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 }
 
 document.querySelectorAll('.mascot-slot').forEach(function (s) { s.appendChild(mascotImg('normal')); });
+$('farm-pig').appendChild(mascotImg('pig'));
 $('header-sub').textContent = jpDateLabel(new Date());
 showView('board');
