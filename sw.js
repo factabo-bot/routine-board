@@ -40,6 +40,8 @@ const ASSETS = [
   './assets/farm/stand.png',
   './assets/farm/bighouse.png',
   './assets/farm/tourism.png',
+  './assets/challenge/cake.png',
+  './assets/challenge/cake-party.png',
 ];
 
 self.addEventListener('install', function (e) {
