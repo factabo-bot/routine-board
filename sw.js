@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'routine-board-v1';
+const CACHE = 'routine-board-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -33,10 +33,11 @@ self.addEventListener('activate', function (e) {
 });
 
 // ネットワーク優先・失敗時にキャッシュ（更新が即座に届き、オフラインでも開ける）
+// cache: 'no-cache' でHTTPキャッシュ(max-age=600)を素通りし、毎回サーバーに更新確認する
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then(function (res) {
         if (res.ok && e.request.url.indexOf(self.location.origin) === 0) {
           const copy = res.clone();

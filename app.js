@@ -1,6 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
+const APP_VERSION = '1.1';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -479,6 +480,7 @@ function renderStorageStatus() {
   const finish = function (persistLine) {
     lines.push(persistLine);
     lines.push('※ブラウザのデータ消去では消えます。定期的なエクスポートをおすすめします。');
+    lines.push('アプリのバージョン: ' + APP_VERSION);
     $('storage-status').textContent = lines.join('\n');
   };
   if (navigator.storage && navigator.storage.persisted) {
