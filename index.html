@@ -29,6 +29,83 @@
       <span class="mascot mascot-empty mascot-slot"></span>
       <p>ルーティンがまだありません。<br>「設定」タブから追加してください。</p>
     </div>
+    <button id="memo-box" class="memo-box empty">
+      <span class="memo-label">メモ</span>
+      <span id="memo-text" class="memo-text"></span>
+    </button>
+  </section>
+
+  <!-- 統計 -->
+  <section id="view-stats" class="view hidden">
+    <div class="stats-tabs">
+      <button id="stats-tab-routine" class="pill active">ルーティン</button>
+      <button id="stats-tab-todo" class="pill">ToDo</button>
+    </div>
+
+    <div id="stats-routine">
+      <div class="stats-card">
+        <div class="stats-head">
+          <span class="stats-title">週間ルーティン</span>
+          <div class="range-nav">
+            <button id="week-prev" class="nav-btn">&lt;</button>
+            <span id="week-label"></span>
+            <button id="week-next" class="nav-btn">&gt;</button>
+          </div>
+        </div>
+        <div id="week-big" class="stats-big"></div>
+        <div class="tube-row">
+          <div class="tube-item">
+            <span id="tube-prev-pct" class="tube-pct"></span>
+            <div class="tube"><div id="tube-prev" class="tube-fill"></div></div>
+            <span class="tube-label">前の週</span>
+          </div>
+          <div class="tube-item">
+            <span id="tube-cur-pct" class="tube-pct"></span>
+            <div class="tube"><div id="tube-cur" class="tube-fill"></div></div>
+            <span class="tube-label">この週</span>
+          </div>
+        </div>
+        <div id="week-memo-count" class="stats-note"></div>
+      </div>
+
+      <div class="stats-card">
+        <span class="stats-title">ルーティン別</span>
+        <div id="sr-days-head" class="sr-days-head"></div>
+        <ul id="stats-routine-list" class="stats-routine-list"></ul>
+      </div>
+
+      <div class="stats-card">
+        <div class="stats-head">
+          <span class="stats-title">月間カレンダー</span>
+          <div class="range-nav">
+            <button id="month-prev" class="nav-btn">&lt;</button>
+            <span id="month-label"></span>
+            <button id="month-next" class="nav-btn">&gt;</button>
+          </div>
+        </div>
+        <div id="month-grid" class="month-grid"></div>
+        <div class="month-legend">
+          <span><span class="lg lg-full"></span>全部達成</span>
+          <span><span class="lg lg-partial"></span>一部達成</span>
+          <span><span class="lg lg-none"></span>なし</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="stats-todo" class="hidden">
+      <div class="stats-card">
+        <span class="stats-title">ToDoの完了</span>
+        <div class="todo-stat-row">
+          <div class="todo-stat"><span id="todo-week-cur" class="stats-big"></span><span class="tube-label">今週</span></div>
+          <div class="todo-stat"><span id="todo-week-prev" class="stats-big"></span><span class="tube-label">先週</span></div>
+          <div class="todo-stat"><span id="todo-total" class="stats-big"></span><span class="tube-label">累計</span></div>
+        </div>
+      </div>
+      <div class="stats-card">
+        <span class="stats-title">週ごとの完了数（直近8週）</span>
+        <div id="todo-bars" class="todo-bars"></div>
+      </div>
+    </div>
   </section>
 
   <!-- ToDoファーム -->
@@ -85,6 +162,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M12 20v-8"/><path d="M12 12C12 8.7 9.3 6 6 6c0 3.3 2.7 6 6 6z"/><path d="M12 10c0-2.8 2.2-5 5-5 0 2.8-2.2 5-5 5z"/></svg>
     <span>ファーム</span>
   </button>
+  <button class="tab-btn" data-view="stats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="19" x2="5" y2="13"/><line x1="12" y1="19" x2="12" y2="6"/><line x1="19" y1="19" x2="19" y2="10"/></svg>
+    <span>統計</span>
+  </button>
   <button class="tab-btn" data-view="settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="15" x2="20" y2="15"/><circle cx="9" cy="15" r="2.4"/></svg>
     <span>設定</span>
@@ -109,6 +190,19 @@
     <div id="rf-days" class="day-picks"></div>
     <div class="dialog-buttons">
       <button type="button" id="rf-cancel" class="btn">キャンセル</button>
+      <button type="submit" class="btn btn-primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 1日メモのダイアログ -->
+<dialog id="memo-dialog">
+  <form id="memo-form">
+    <h2 id="memo-dialog-title">メモ</h2>
+    <textarea id="memo-input" rows="5" maxlength="500" placeholder="この日の出来事や気づきを残す"></textarea>
+    <div class="dialog-buttons">
+      <button type="button" id="memo-delete" class="btn">削除</button>
+      <button type="button" id="memo-cancel" class="btn">キャンセル</button>
       <button type="submit" class="btn btn-primary">保存</button>
     </div>
   </form>

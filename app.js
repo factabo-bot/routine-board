@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -84,6 +84,32 @@ function parseDate(s) {
   return new Date(parts[0], parts[1] - 1, parts[2]);
 }
 
+function addDays(dateStr, n) {
+  const d = parseDate(dateStr);
+  d.setDate(d.getDate() + n);
+  return fmtDate(d);
+}
+
+// その日を含む週の月曜日
+function mondayOf(dateStr) {
+  const d = parseDate(dateStr);
+  d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+  return fmtDate(d);
+}
+
+// offset週分ずらした週の7日分（月〜日）。0=今週、-1=先週
+function weekDatesFor(offset) {
+  const start = addDays(mondayOf(todayStr()), offset * 7);
+  const out = [];
+  for (let i = 0; i < 7; i++) out.push(addDays(start, i));
+  return out;
+}
+
+function fmtMD(dateStr) {
+  const d = parseDate(dateStr);
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+
 function jpDateLabel(d) {
   return (d.getMonth() + 1) + '月' + d.getDate() + '日（' + DAY_LABELS[d.getDay()] + '）';
 }
@@ -94,7 +120,15 @@ function uid() {
 
 // ========== データ ==========
 function defaultState() {
-  return { version: 1, routines: [], checks: {}, todos: [], meta: { lastExport: null, farmDone: 0 } };
+  return {
+    version: 1,
+    routines: [],
+    checks: {},
+    todos: [],
+    memos: {},   // 日付 → その日のメモ
+    todoLog: {}, // 日付 → その日に完了したToDo数（統計用）
+    meta: { lastExport: null, farmDone: 0 },
+  };
 }
 
 function mergeState(data) {
@@ -130,7 +164,7 @@ let dlgDays = [];
 let dlgIcon = null;
 
 // ========== タブ切替 ==========
-const VIEWS = ['board', 'farm', 'settings'];
+const VIEWS = ['board', 'farm', 'stats', 'settings'];
 
 function showView(name) {
   VIEWS.forEach(function (v) {
@@ -141,6 +175,7 @@ function showView(name) {
   });
   if (name === 'board') renderBoard();
   if (name === 'farm') renderFarm();
+  if (name === 'stats') renderStats();
   if (name === 'settings') renderSettings();
 }
 
@@ -249,7 +284,36 @@ function renderGrid() {
 function renderBoard() {
   renderDateStrip();
   renderGrid();
+  renderMemoBox();
 }
+
+// ========== 1日メモ ==========
+function renderMemoBox() {
+  const m = state.memos[selectedDate];
+  $('memo-box').classList.toggle('empty', !m);
+  $('memo-text').textContent = m || 'タップしてこの日のメモを書く';
+}
+
+$('memo-box').addEventListener('click', function () {
+  $('memo-dialog-title').textContent = jpDateLabel(parseDate(selectedDate)) + ' のメモ';
+  $('memo-input').value = state.memos[selectedDate] || '';
+  $('memo-dialog').showModal();
+});
+$('memo-cancel').addEventListener('click', function () { $('memo-dialog').close(); });
+$('memo-delete').addEventListener('click', function () {
+  delete state.memos[selectedDate];
+  saveState();
+  $('memo-dialog').close();
+  renderMemoBox();
+});
+$('memo-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const text = $('memo-input').value.trim();
+  if (text) state.memos[selectedDate] = text; else delete state.memos[selectedDate];
+  saveState();
+  $('memo-dialog').close();
+  renderMemoBox();
+});
 
 // ========== ToDoファーム ==========
 // ToDoを完了した累計数（meta.farmDone）に応じて畑が発展していく
@@ -314,6 +378,13 @@ function renderFarm() {
     cb.addEventListener('change', function () {
       t.done = cb.checked;
       state.meta.farmDone = Math.max(0, state.meta.farmDone + (cb.checked ? 1 : -1));
+      const day = todayStr();
+      if (cb.checked) {
+        state.todoLog[day] = (state.todoLog[day] || 0) + 1;
+      } else {
+        state.todoLog[day] = Math.max(0, (state.todoLog[day] || 0) - 1);
+        if (!state.todoLog[day]) delete state.todoLog[day];
+      }
       saveState();
       renderFarm();
     });
@@ -350,6 +421,172 @@ $('todo-clear').addEventListener('click', function () {
   saveState();
   renderFarm();
 });
+
+// ========== 統計 ==========
+let statsTab = 'routine';
+let statsWeekOffset = 0;  // 0=今週、-1=先週…
+let statsMonthOffset = 0; // 0=今月
+
+function dayAchieve(ds) {
+  const rs = routinesForDate(ds);
+  const checked = checksFor(ds);
+  return {
+    scheduled: rs.length,
+    done: rs.filter(function (r) { return checked.includes(r.id); }).length,
+  };
+}
+
+// 週の達成集計（当日までの分だけ数える）
+function weekAchieve(dates) {
+  const today = todayStr();
+  let scheduled = 0;
+  let done = 0;
+  dates.forEach(function (ds) {
+    if (ds > today) return;
+    const s = dayAchieve(ds);
+    scheduled += s.scheduled;
+    done += s.done;
+  });
+  return { scheduled: scheduled, done: done, pct: scheduled ? Math.round(done / scheduled * 100) : null };
+}
+
+function renderStats() {
+  $('stats-tab-routine').classList.toggle('active', statsTab === 'routine');
+  $('stats-tab-todo').classList.toggle('active', statsTab === 'todo');
+  $('stats-routine').classList.toggle('hidden', statsTab !== 'routine');
+  $('stats-todo').classList.toggle('hidden', statsTab !== 'todo');
+  if (statsTab === 'routine') {
+    renderWeekCard();
+    renderRoutineBreakdown();
+    renderMonthCard();
+  } else {
+    renderTodoStats();
+  }
+}
+
+function renderWeekCard() {
+  const dates = weekDatesFor(statsWeekOffset);
+  const prevDates = weekDatesFor(statsWeekOffset - 1);
+  $('week-label').textContent = fmtMD(dates[0]) + '〜' + fmtMD(dates[6]);
+  $('week-next').disabled = statsWeekOffset >= 0;
+
+  const cur = weekAchieve(dates);
+  const prev = weekAchieve(prevDates);
+
+  const big = $('week-big');
+  big.textContent = '';
+  if (cur.scheduled) {
+    big.appendChild(document.createTextNode(cur.done + ' '));
+    big.appendChild(el('span', 'stats-big-sub', '/ ' + cur.scheduled + ' 回達成'));
+  } else {
+    big.appendChild(el('span', 'stats-big-sub', 'この週の記録はありません'));
+  }
+
+  $('tube-prev-pct').textContent = prev.pct === null ? '—' : prev.pct + '%';
+  $('tube-cur-pct').textContent = cur.pct === null ? '—' : cur.pct + '%';
+  $('tube-prev').style.height = (prev.pct || 0) + '%';
+  $('tube-cur').style.height = (cur.pct || 0) + '%';
+
+  const memoCount = dates.filter(function (ds) { return state.memos[ds]; }).length;
+  $('week-memo-count').textContent = 'この週のメモ ' + memoCount + ' 件';
+}
+
+function renderRoutineBreakdown() {
+  const dates = weekDatesFor(statsWeekOffset);
+  const today = todayStr();
+
+  const head = $('sr-days-head');
+  head.textContent = '';
+  [1, 2, 3, 4, 5, 6, 0].forEach(function (d) { head.appendChild(el('span', undefined, DAY_LABELS[d])); });
+
+  const list = $('stats-routine-list');
+  list.textContent = '';
+  if (state.routines.length === 0) {
+    list.appendChild(el('li', 'stats-note', 'ルーティンがまだありません'));
+    return;
+  }
+  state.routines.forEach(function (r) {
+    const li = el('li', 'sr-item');
+    li.appendChild(routineIconEl(r, 'sr-icon'));
+    li.appendChild(el('span', 'sr-name', r.title));
+    const dots = el('span', 'sr-dots');
+    dates.forEach(function (ds) {
+      const wd = parseDate(ds).getDay();
+      let cls;
+      if (!r.days.includes(wd)) cls = 'off';
+      else if (ds > today) cls = 'future';
+      else cls = checksFor(ds).includes(r.id) ? 'done' : 'miss';
+      dots.appendChild(el('span', 'rdot ' + cls));
+    });
+    li.appendChild(dots);
+    list.appendChild(li);
+  });
+}
+
+function renderMonthCard() {
+  const t = parseDate(todayStr());
+  const base = new Date(t.getFullYear(), t.getMonth() + statsMonthOffset, 1);
+  const y = base.getFullYear();
+  const mo = base.getMonth();
+  $('month-label').textContent = y + '年' + (mo + 1) + '月';
+  $('month-next').disabled = statsMonthOffset >= 0;
+
+  const grid = $('month-grid');
+  grid.textContent = '';
+  [1, 2, 3, 4, 5, 6, 0].forEach(function (d) { grid.appendChild(el('span', 'mhead', DAY_LABELS[d])); });
+
+  const startPad = (base.getDay() + 6) % 7;
+  for (let i = 0; i < startPad; i++) grid.appendChild(el('span'));
+
+  const today = todayStr();
+  const daysInMonth = new Date(y, mo + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = fmtDate(new Date(y, mo, day));
+    let cls = 'plain';
+    if (ds <= today) {
+      const s = dayAchieve(ds);
+      if (s.scheduled === 0) cls = 'plain';
+      else if (s.done === s.scheduled) cls = 'full';
+      else if (s.done > 0) cls = 'partial';
+      else cls = 'none';
+    }
+    grid.appendChild(el('span', 'mday ' + cls, String(day)));
+  }
+}
+
+function renderTodoStats() {
+  const weeks = [];
+  for (let o = -7; o <= 0; o++) {
+    const ds = weekDatesFor(o);
+    let n = 0;
+    ds.forEach(function (d) { n += state.todoLog[d] || 0; });
+    weeks.push({ label: fmtMD(ds[0]), n: n });
+  }
+  $('todo-week-cur').textContent = String(weeks[7].n);
+  $('todo-week-prev').textContent = String(weeks[6].n);
+  $('todo-total').textContent = String(state.meta.farmDone);
+
+  const bars = $('todo-bars');
+  bars.textContent = '';
+  let max = 1;
+  weeks.forEach(function (w) { if (w.n > max) max = w.n; });
+  weeks.forEach(function (w) {
+    const item = el('span', 'tbar');
+    item.appendChild(el('span', 'tbar-val', w.n > 0 ? String(w.n) : ''));
+    const fill = el('span', 'tbar-fill' + (w.n === 0 ? ' zero' : ''));
+    fill.style.height = w.n > 0 ? Math.round(6 + (w.n / max) * 84) + 'px' : '3px';
+    item.appendChild(fill);
+    item.appendChild(el('span', 'tbar-label', w.label));
+    bars.appendChild(item);
+  });
+}
+
+$('stats-tab-routine').addEventListener('click', function () { statsTab = 'routine'; renderStats(); });
+$('stats-tab-todo').addEventListener('click', function () { statsTab = 'todo'; renderStats(); });
+$('week-prev').addEventListener('click', function () { statsWeekOffset--; renderStats(); });
+$('week-next').addEventListener('click', function () { if (statsWeekOffset < 0) statsWeekOffset++; renderStats(); });
+$('month-prev').addEventListener('click', function () { statsMonthOffset--; renderStats(); });
+$('month-next').addEventListener('click', function () { if (statsMonthOffset < 0) statsMonthOffset++; renderStats(); });
 
 // ========== 設定: ルーティン一覧 ==========
 function daysSummary(days) {
