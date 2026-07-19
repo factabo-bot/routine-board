@@ -179,7 +179,7 @@ main {
 
 /* ===== マスコット（トマト） ===== */
 .mascot { display: inline-block; line-height: 0; }
-.mascot svg { width: 100%; height: 100%; }
+.mascot img { width: 100%; height: 100%; object-fit: contain; }
 .mascot-title {
   width: 24px;
   height: 24px;
@@ -194,10 +194,10 @@ main {
 }
 .mascot-turn {
   position: absolute;
-  top: -16px;
-  right: -5px;
-  width: 34px;
-  height: 34px;
+  top: -25px;
+  right: -8px;
+  width: 48px;
+  height: 48px;
   z-index: 2;
   pointer-events: none;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .15));

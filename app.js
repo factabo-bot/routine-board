@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -16,24 +16,23 @@ const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 const ICON_PICKS = ['⏰', '🛏️', '💊', '🏃', '🍱', '☕', '📚', '🌙', '🚶', '🧹', '💧', '🦷', '🎮', '🌱'];
 const DATE_STRIP_DAYS = 14;
 
-// マスコット（トマトのキャラ）
-const TOMATO_SVG =
-  '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-  '<ellipse cx="32" cy="38" rx="23" ry="21" fill="#E8564A" stroke="#111" stroke-width="2.5"/>' +
-  '<path d="M32 15 C26 11 18 12 13 17 C20 19 26 20 32 19 C38 20 44 19 51 17 C46 12 38 11 32 15 Z"' +
-  ' fill="#2FBF71" stroke="#111" stroke-width="2" stroke-linejoin="round"/>' +
-  '<path d="M30 6 C30 10 30 13 32 16 C34 13 34 10 34 6 Z"' +
-  ' fill="#1E9E58" stroke="#111" stroke-width="2" stroke-linejoin="round"/>' +
-  '<circle cx="25" cy="38" r="2.6" fill="#111"/>' +
-  '<circle cx="39" cy="38" r="2.6" fill="#111"/>' +
-  '<path d="M28 44 Q32 48 36 44" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>' +
-  '<circle cx="19" cy="43" r="3" fill="#F9B4AC" opacity=".9"/>' +
-  '<circle cx="45" cy="43" r="3" fill="#F9B4AC" opacity=".9"/>' +
-  '</svg>';
+// マスコット（トマトのキャラ・生成画像を背景透過に加工したもの）
+const MASCOT_SRC = {
+  normal: 'assets/mascot-normal.png',
+  wave: 'assets/mascot-wave.png',
+  cheer: 'assets/mascot-cheer.png',
+};
 
-function mascotEl(extraClass) {
+function mascotImg(pose) {
+  const img = el('img');
+  img.src = MASCOT_SRC[pose] || MASCOT_SRC.normal;
+  img.alt = '';
+  return img;
+}
+
+function mascotEl(extraClass, pose) {
   const m = el('span', 'mascot' + (extraClass ? ' ' + extraClass : ''));
-  m.innerHTML = TOMATO_SVG;
+  m.appendChild(mascotImg(pose));
   return m;
 }
 
@@ -192,13 +191,13 @@ function renderGrid() {
   // 次にやるマス（最初の未チェック）にトマトを乗せる
   const next = routines.findIndex(function (r) { return !checked.includes(r.id); });
   if (next >= 0) {
-    grid.children[next].appendChild(mascotEl('mascot-turn'));
+    grid.children[next].appendChild(mascotEl('mascot-turn', 'wave'));
   }
 
   // 全マス達成のお祝い
   if (routines.length > 0 && doneCount === routines.length) {
     const box = el('div', 'board-done grid-note');
-    box.appendChild(mascotEl('mascot-cheer'));
+    box.appendChild(mascotEl('mascot-cheer', 'cheer'));
     box.appendChild(el('p', undefined, 'ぜんぶ達成！'));
     grid.appendChild(box);
   }
@@ -516,6 +515,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   navigator.serviceWorker.register('sw.js').catch(function () {});
 }
 
-document.querySelectorAll('.mascot-slot').forEach(function (s) { s.innerHTML = TOMATO_SVG; });
+document.querySelectorAll('.mascot-slot').forEach(function (s) { s.appendChild(mascotImg('normal')); });
 $('header-sub').textContent = jpDateLabel(new Date());
 showView('board');

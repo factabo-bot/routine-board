@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'routine-board-v2';
+const CACHE = 'routine-board-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,10 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './assets/mascot-normal.png',
+  './assets/mascot-wave.png',
+  './assets/mascot-cheer.png',
 ];
 
 self.addEventListener('install', function (e) {
