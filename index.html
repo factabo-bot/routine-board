@@ -35,6 +35,31 @@
     </button>
   </section>
 
+  <!-- ケーキチャレンジ -->
+  <section id="view-challenge" class="view hidden">
+    <div class="stats-card">
+      <div class="stats-head">
+        <span class="stats-title">ケーキチャレンジ</span>
+        <button id="challenge-edit" class="btn btn-sm">編集</button>
+      </div>
+      <div class="cake-row">
+        <div class="challenge-progress"><div id="challenge-bar" class="farm-bar"></div></div>
+        <img id="cake-img" class="cake-img" src="assets/challenge/cake.png" alt="ケーキ">
+      </div>
+      <div id="challenge-status" class="stats-note"></div>
+      <div id="challenge-tickets" class="ticket-box hidden">
+        <img src="assets/challenge/cake-party.png" alt="" class="ticket-img">
+        <span id="ticket-count" class="ticket-count"></span>
+        <button id="ticket-use" class="btn btn-sm">使う</button>
+      </div>
+    </div>
+    <div class="stats-card">
+      <span class="stats-title">今日のチャレンジ</span>
+      <ul id="challenge-list" class="todo-list challenge-list"></ul>
+      <div id="challenge-today" class="challenge-today"></div>
+    </div>
+  </section>
+
   <!-- 統計 -->
   <section id="view-stats" class="view hidden">
     <div class="stats-tabs">
@@ -162,6 +187,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M12 20v-8"/><path d="M12 12C12 8.7 9.3 6 6 6c0 3.3 2.7 6 6 6z"/><path d="M12 10c0-2.8 2.2-5 5-5 0 2.8-2.2 5-5 5z"/></svg>
     <span>ファーム</span>
   </button>
+  <button class="tab-btn" data-view="challenge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20h14"/><path d="M6 20v-4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4"/><path d="M7 14c1-1.5 2.5-1.5 3.5 0s2 1.5 3 0 2.5-1.5 3.5 0"/><line x1="12" y1="9" x2="12" y2="12"/><circle cx="12" cy="7" r="1"/></svg>
+    <span>チャレンジ</span>
+  </button>
   <button class="tab-btn" data-view="stats">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="19" x2="5" y2="13"/><line x1="12" y1="19" x2="12" y2="6"/><line x1="19" y1="19" x2="19" y2="10"/></svg>
     <span>統計</span>
@@ -190,6 +219,26 @@
     <div id="rf-days" class="day-picks"></div>
     <div class="dialog-buttons">
       <button type="button" id="rf-cancel" class="btn">キャンセル</button>
+      <button type="submit" class="btn btn-primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- チャレンジ編集ダイアログ -->
+<dialog id="challenge-dialog">
+  <form id="challenge-form">
+    <h2>チャレンジを設定</h2>
+    <label>チャレンジ1
+      <input id="ch-t1" type="text" maxlength="40" autocomplete="off">
+    </label>
+    <label>チャレンジ2
+      <input id="ch-t2" type="text" maxlength="40" autocomplete="off">
+    </label>
+    <label>チャレンジ3
+      <input id="ch-t3" type="text" maxlength="40" autocomplete="off">
+    </label>
+    <div class="dialog-buttons">
+      <button type="button" id="ch-cancel" class="btn">キャンセル</button>
       <button type="submit" class="btn btn-primary">保存</button>
     </div>
   </form>

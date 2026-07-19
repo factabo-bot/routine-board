@@ -623,6 +623,39 @@ span.sr-icon { font-size: 17px; line-height: 1; flex: 0 0 auto; }
 .tbar-val { font-size: 10px; color: #888; font-weight: 700; min-height: 12px; }
 .tbar-label { font-size: 9px; color: #999; font-weight: 700; }
 
+/* ===== ケーキチャレンジ ===== */
+.cake-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.challenge-progress {
+  flex: 1;
+  height: 12px;
+  background: #EFEFEA;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.cake-img { width: 46px; height: 46px; object-fit: contain; flex: 0 0 auto; }
+.ticket-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  background: #FFF8E6;
+  border: 1.5px dashed #E3C558;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.ticket-img { width: 40px; height: 40px; object-fit: contain; flex: 0 0 auto; }
+.ticket-count { flex: 1; font-size: 13px; font-weight: 700; }
+.challenge-list { margin-top: 10px; }
+.challenge-today {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.challenge-today p { font-weight: 700; font-size: 13px; color: #333; text-align: center; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
 /* ===== ボタン ===== */
 .btn {
   border: 1.5px solid #111;

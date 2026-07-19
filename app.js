@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.2';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -127,6 +127,7 @@ function defaultState() {
     todos: [],
     memos: {},   // 日付 → その日のメモ
     todoLog: {}, // 日付 → その日に完了したToDo数（統計用）
+    challenge: { tasks: [], checks: {}, used: 0 }, // ケーキチャレンジ
     meta: { lastExport: null, farmDone: 0 },
   };
 }
@@ -134,6 +135,7 @@ function defaultState() {
 function mergeState(data) {
   const merged = Object.assign(defaultState(), data);
   merged.meta = Object.assign(defaultState().meta, data.meta || {});
+  merged.challenge = Object.assign(defaultState().challenge, data.challenge || {});
   return merged;
 }
 
@@ -164,7 +166,7 @@ let dlgDays = [];
 let dlgIcon = null;
 
 // ========== タブ切替 ==========
-const VIEWS = ['board', 'farm', 'stats', 'settings'];
+const VIEWS = ['board', 'farm', 'challenge', 'stats', 'settings'];
 
 function showView(name) {
   VIEWS.forEach(function (v) {
@@ -175,6 +177,7 @@ function showView(name) {
   });
   if (name === 'board') renderBoard();
   if (name === 'farm') renderFarm();
+  if (name === 'challenge') renderChallenge();
   if (name === 'stats') renderStats();
   if (name === 'settings') renderSettings();
 }
@@ -580,6 +583,114 @@ function renderTodoStats() {
     bars.appendChild(item);
   });
 }
+
+// ========== ケーキチャレンジ ==========
+// 1つ達成=1pt・3つ全部達成でボーナス+2（計5pt）・累計50ptごとにケーキ券1枚
+const CHALLENGE_GOAL = 50;
+const CHALLENGE_BONUS = 2;
+
+function challengeChecksFor(ds) {
+  return state.challenge.checks[ds] || [];
+}
+
+function challengeDayPoints(n) {
+  const capped = Math.min(n, 3);
+  return capped + (capped >= 3 ? CHALLENGE_BONUS : 0);
+}
+
+function challengeTotalPoints() {
+  let total = 0;
+  Object.keys(state.challenge.checks).forEach(function (ds) {
+    total += challengeDayPoints(state.challenge.checks[ds].length);
+  });
+  return total;
+}
+
+function renderChallenge() {
+  const tasks = state.challenge.tasks.filter(function (t) { return t.title; });
+  const today = todayStr();
+  const checked = challengeChecksFor(today);
+  const total = challengeTotalPoints();
+  const tickets = Math.floor(total / CHALLENGE_GOAL) - state.challenge.used;
+  const progress = total % CHALLENGE_GOAL;
+
+  $('challenge-bar').style.width = Math.round(progress / CHALLENGE_GOAL * 100) + '%';
+  $('challenge-status').textContent =
+    'ケーキまで あと ' + (CHALLENGE_GOAL - progress) + ' ポイント（累計 ' + total + ' pt）';
+
+  $('challenge-tickets').classList.toggle('hidden', tickets <= 0);
+  $('ticket-count').textContent = 'ケーキ券を ' + tickets + ' 枚もっています';
+
+  const list = $('challenge-list');
+  list.textContent = '';
+  if (tasks.length === 0) {
+    list.appendChild(el('li', 'stats-note', '右上の「編集」から3つのチャレンジを設定してください'));
+  }
+  tasks.forEach(function (t) {
+    const li = el('li', 'todo-item' + (checked.includes(t.id) ? ' done' : ''));
+    const label = el('label');
+    const cb = el('input');
+    cb.type = 'checkbox';
+    cb.checked = checked.includes(t.id);
+    cb.addEventListener('change', function () {
+      const cl = challengeChecksFor(today).slice();
+      const i = cl.indexOf(t.id);
+      if (cb.checked && i < 0) cl.push(t.id);
+      if (!cb.checked && i >= 0) cl.splice(i, 1);
+      if (cl.length) state.challenge.checks[today] = cl; else delete state.challenge.checks[today];
+      saveState();
+      renderChallenge();
+    });
+    label.appendChild(cb);
+    label.appendChild(el('span', 'todo-title', t.title));
+    li.appendChild(label);
+    list.appendChild(li);
+  });
+
+  const n = Math.min(checked.length, 3);
+  const box = $('challenge-today');
+  box.textContent = '';
+  if (tasks.length > 0 && n >= tasks.length && n >= 3) {
+    const chars = el('div', 'board-done-chars');
+    chars.appendChild(mascotEl('mascot-cheer', 'cheer'));
+    chars.appendChild(mascotEl('mascot-cheer-pig', 'pig'));
+    box.appendChild(chars);
+    box.appendChild(el('p', undefined, '今日は全部達成！ +' + challengeDayPoints(n) + ' ポイント'));
+  } else if (n > 0) {
+    box.appendChild(el('p', undefined, '今日 +' + n + ' ポイント（全部達成で +' + (3 + CHALLENGE_BONUS) + '）'));
+  } else if (tasks.length > 0) {
+    box.appendChild(el('p', undefined, '1つ達成で +1、全部達成で +' + (3 + CHALLENGE_BONUS) + ' ポイント'));
+  }
+}
+
+$('ticket-use').addEventListener('click', function () {
+  const tickets = Math.floor(challengeTotalPoints() / CHALLENGE_GOAL) - state.challenge.used;
+  if (tickets <= 0) return;
+  if (!confirm('ケーキ券を1枚使います。ケーキ屋さんでケーキをどうぞ！')) return;
+  state.challenge.used++;
+  saveState();
+  renderChallenge();
+});
+
+$('challenge-edit').addEventListener('click', function () {
+  const t = state.challenge.tasks;
+  $('ch-t1').value = t[0] ? t[0].title : '';
+  $('ch-t2').value = t[1] ? t[1].title : '';
+  $('ch-t3').value = t[2] ? t[2].title : '';
+  $('challenge-dialog').showModal();
+});
+$('ch-cancel').addEventListener('click', function () { $('challenge-dialog').close(); });
+$('challenge-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  state.challenge.tasks = [
+    { id: 'c1', title: $('ch-t1').value.trim() },
+    { id: 'c2', title: $('ch-t2').value.trim() },
+    { id: 'c3', title: $('ch-t3').value.trim() },
+  ];
+  saveState();
+  $('challenge-dialog').close();
+  renderChallenge();
+});
 
 $('stats-tab-routine').addEventListener('click', function () { statsTab = 'routine'; renderStats(); });
 $('stats-tab-todo').addEventListener('click', function () { statsTab = 'todo'; renderStats(); });
