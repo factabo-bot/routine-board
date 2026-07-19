@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ルーティン盤面</title>
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="app-header">
+  <h1>ルーティン盤面</h1>
+  <div id="header-sub"></div>
+</header>
+
+<main>
+  <!-- 盤面 -->
+  <section id="view-board" class="view">
+    <div id="date-strip" class="date-strip"></div>
+    <div class="board-status">
+      <span id="board-counter" class="counter"></span>
+      <span id="board-date-label" class="date-label"></span>
+    </div>
+    <div id="board-grid" class="board-grid"></div>
+    <p id="board-empty" class="empty-note hidden">ルーティンがまだありません。<br>「設定」タブから追加してください。</p>
+  </section>
+
+  <!-- ToDoレーシング -->
+  <section id="view-race" class="view hidden">
+    <div class="race-track">
+      <div class="race-road">
+        <span id="race-car">🏎️</span>
+        <span class="race-goal">🏁</span>
+      </div>
+      <div id="race-status" class="race-status"></div>
+    </div>
+    <form id="todo-form" class="todo-form">
+      <input id="todo-input" type="text" placeholder="ToDoを追加" maxlength="100" autocomplete="off">
+      <button type="submit" class="btn btn-primary">追加</button>
+    </form>
+    <ul id="todo-list" class="todo-list"></ul>
+    <div class="todo-actions">
+      <button id="todo-clear" class="btn">完了を整理</button>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="view-settings" class="view hidden">
+    <h2>ルーティン</h2>
+    <ul id="routine-list" class="routine-list"></ul>
+    <button id="routine-add" class="btn btn-primary">＋ ルーティンを追加</button>
+
+    <h2>バックアップ</h2>
+    <div class="backup-box">
+      <p id="backup-status"></p>
+      <div class="backup-buttons">
+        <button id="export-btn" class="btn">エクスポート</button>
+        <button id="import-btn" class="btn">インポート</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+
+    <h2>保存状態</h2>
+    <p id="storage-status" class="storage-status"></p>
+  </section>
+</main>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-view="board">🎯<span>盤面</span></button>
+  <button class="tab-btn" data-view="race">🏎️<span>レース</span></button>
+  <button class="tab-btn" data-view="settings">⚙️<span>設定</span></button>
+</nav>
+
+<!-- ルーティン追加・編集ダイアログ -->
+<dialog id="routine-dialog">
+  <form id="routine-form">
+    <h2 id="routine-dialog-title">ルーティンを追加</h2>
+    <label>名前
+      <input id="rf-title" type="text" required maxlength="30" autocomplete="off">
+    </label>
+    <label>アイコン（絵文字）
+      <input id="rf-icon" type="text" maxlength="4" autocomplete="off">
+    </label>
+    <div id="rf-icon-picks" class="icon-picks"></div>
+    <span class="field-label">色</span>
+    <div id="rf-colors" class="color-picks"></div>
+    <label>時刻（任意）
+      <input id="rf-time" type="time">
+    </label>
+    <span class="field-label">曜日</span>
+    <div id="rf-days" class="day-picks"></div>
+    <div class="dialog-buttons">
+      <button type="button" id="rf-cancel" class="btn">キャンセル</button>
+      <button type="submit" class="btn btn-primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
