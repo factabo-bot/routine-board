@@ -127,7 +127,16 @@ function defaultState() {
     todos: [],
     memos: {},   // 日付 → その日のメモ
     todoLog: {}, // 日付 → その日に完了したToDo数（統計用）
-    challenge: { tasks: [], checks: {}, used: 0 }, // ケーキチャレンジ
+    // ケーキチャレンジ（初期課題入り。「編集」でいつでも変更可能）
+    challenge: {
+      tasks: [
+        { id: 'c1', title: '会社に水筒を持っていき、帰ってからそれを洗う' },
+        { id: 'c2', title: '髪の毛を乾かす' },
+        { id: 'c3', title: 'ストレッチ' },
+      ],
+      checks: {},
+      used: 0,
+    },
     meta: { lastExport: null, farmDone: 0 },
   };
 }
