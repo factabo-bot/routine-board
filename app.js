@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -1089,19 +1089,75 @@ document.querySelectorAll('.tab-btn').forEach(function (b) {
   b.addEventListener('click', function () { showView(b.dataset.view); });
 });
 
-// 日付が変わったまま開きっぱなしのとき、再表示で今日に追従させる
+// アプリに戻ってきたら保存データを読み直す。
+// 古いタブが古いメモリ内容のまま上書き保存してデータを消す事故（v2.4以前で発生）を防ぐため、
+// 表示のたびに localStorage を正とする
 document.addEventListener('visibilitychange', function () {
-  if (document.visibilityState === 'visible' && lastToday !== todayStr()) {
+  if (document.visibilityState !== 'visible') return;
+  state = loadState();
+  if (lastToday !== todayStr()) {
     lastToday = todayStr();
     selectedDate = lastToday;
     $('header-sub').textContent = jpDateLabel(new Date());
-    renderBoard();
+  }
+  const active = document.querySelector('.tab-btn.active');
+  showView(active ? active.dataset.view : 'board');
+});
+
+// 日次自動バックアップ（直近2世代を端末内に保存）
+function takeSnapshot() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data) return;
+    // 何かしら中身があるときだけ残す（空データでバックアップを潰さない）
+    const hasContent =
+      (data.routines && data.routines.length > 0) ||
+      (data.checks && Object.keys(data.checks).length > 0) ||
+      (data.challenge && data.challenge.checks && Object.keys(data.challenge.checks).length > 0) ||
+      (data.zoo && data.zoo.owned && data.zoo.owned.length > 0) ||
+      (data.todos && data.todos.length > 0);
+    if (!hasContent) return;
+    const today = todayStr();
+    const prev = JSON.parse(localStorage.getItem(STORAGE_KEY + '-bak1') || 'null');
+    if (prev && prev.date === today) return;
+    if (prev) localStorage.setItem(STORAGE_KEY + '-bak2', JSON.stringify(prev));
+    localStorage.setItem(STORAGE_KEY + '-bak1', JSON.stringify({ date: today, data: data }));
+  } catch (e) {}
+}
+
+$('restore-btn').addEventListener('click', function () {
+  const cands = [];
+  ['-bak1', '-bak2'].forEach(function (k) {
+    try {
+      const v = JSON.parse(localStorage.getItem(STORAGE_KEY + k) || 'null');
+      if (v && v.data && v.date) cands.push(v);
+    } catch (e) {}
+  });
+  if (cands.length === 0) {
+    alert('バックアップがまだありません（毎日の起動時に自動で作られます）');
+    return;
+  }
+  cands.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  for (let i = 0; i < cands.length; i++) {
+    const c = cands[i];
+    const msg = c.date + ' 時点のバックアップ（ルーティン ' + (c.data.routines || []).length +
+      ' 件・記録 ' + Object.keys(c.data.checks || {}).length + ' 日）に戻しますか？\n現在のデータは置き換わります。';
+    if (confirm(msg)) {
+      state = mergeState(c.data);
+      saveState();
+      renderSettings();
+      alert('復元しました');
+      return;
+    }
   }
 });
 
 if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist().catch(function () {});
 }
+takeSnapshot();
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   navigator.serviceWorker.register('sw.js').catch(function () {});
 }
