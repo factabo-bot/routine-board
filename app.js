@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -467,11 +467,15 @@ $('memo-form').addEventListener('submit', function (e) {
 });
 
 // ========== ToDoファーム ==========
-// ToDoを完了した累計数（meta.farmDone）に応じて畑が発展していく
+// ToDo完了の累計（meta.farmDone）＋ルーティンチェックの累計で畑が発展していく
 let lastFarmStage = null;
 
+function farmProgress() {
+  return state.meta.farmDone + zooEarnedPoints();
+}
+
 function renderFarm() {
-  const pts = state.meta.farmDone;
+  const pts = farmProgress();
   let cur = FARM_STAGES[0];
   let curIdx = 0;
   let next = null;
@@ -505,9 +509,9 @@ function renderFarm() {
   let status;
   if (next) {
     ratio = (pts - cur.need) / (next.need - cur.need);
-    status = 'つぎの「' + next.label + '」まで あと ' + (next.need - pts) + ' 個（累計 ' + pts + ' 個完了）';
+    status = 'つぎの「' + next.label + '」まで あと ' + (next.need - pts) + '（累計 ' + pts + '）\nルーティンのチェックとToDoの完了で育ちます';
   } else {
-    status = '観光農園まで到達！（累計 ' + pts + ' 個完了）';
+    status = '観光農園まで到達！（累計 ' + pts + '）';
   }
   $('farm-bar').style.width = Math.round(ratio * 100) + '%';
   $('farm-status').textContent = status;

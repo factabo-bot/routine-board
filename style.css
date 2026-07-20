@@ -314,6 +314,7 @@ main {
   color: #555;
   margin-top: 8px;
   line-height: 1.7;
+  white-space: pre-line;
 }
 .farm-steps {
   display: flex;
