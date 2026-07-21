@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -469,6 +469,8 @@ $('memo-form').addEventListener('submit', function (e) {
 // ========== ToDoファーム ==========
 // ToDo完了の累計（meta.farmDone）＋ルーティンチェックの累計で畑が発展していく
 let lastFarmStage = null;
+let farmViewIdx = 0;      // 今表示している段階（過去へさかのぼれる。未来は見れない）
+let prevFarmCurIdx = null; // 直前の到達段階（新しい段階に進んだ判定用）
 
 function farmProgress() {
   return state.meta.farmDone + zooEarnedPoints();
@@ -489,21 +491,30 @@ function renderFarm() {
     }
   }
 
-  // ぶたさんは露地栽培（3段階目）から畑の住人になる
-  $('farm-pig').classList.toggle('hidden', curIdx < 2);
+  // 初回表示、または新しい段階に到達した瞬間は最新の姿を表示。それ以外は見ていた位置を保つ
+  if (prevFarmCurIdx === null || curIdx > prevFarmCurIdx) farmViewIdx = curIdx;
+  farmViewIdx = Math.max(0, Math.min(farmViewIdx, curIdx));
+  prevFarmCurIdx = curIdx;
+
+  const viewStage = FARM_STAGES[farmViewIdx];
+
+  // ぶたさんは露地栽培（3段階目）から畑の住人になる。過去にさかのぼるとまだいない
+  $('farm-pig').classList.toggle('hidden', farmViewIdx < 2);
 
   const img = $('farm-stage-img');
-  img.src = 'assets/farm/' + cur.key + '.png';
-  img.alt = cur.label;
-  // 段階が上がった瞬間だけ演出
-  if (lastFarmStage && lastFarmStage !== cur.key) {
+  img.src = 'assets/farm/' + viewStage.key + '.png';
+  img.alt = viewStage.label;
+  // 表示する姿が切り替わった瞬間だけ演出
+  if (lastFarmStage && lastFarmStage !== viewStage.key) {
     img.classList.remove('farm-pop');
     void img.offsetWidth;
     img.classList.add('farm-pop');
   }
-  lastFarmStage = cur.key;
+  lastFarmStage = viewStage.key;
 
-  $('farm-stage-name').textContent = cur.label;
+  $('farm-stage-name').textContent = viewStage.label;
+  $('farm-prev').disabled = farmViewIdx <= 0;
+  $('farm-next').disabled = farmViewIdx >= curIdx;
 
   let ratio = 1;
   let status;
@@ -518,8 +529,13 @@ function renderFarm() {
 
   const steps = $('farm-steps');
   steps.textContent = '';
-  FARM_STAGES.forEach(function (s) {
-    steps.appendChild(el('span', 'farm-step' + (pts >= s.need ? ' reached' : '')));
+  FARM_STAGES.forEach(function (s, i) {
+    const reached = pts >= s.need;
+    const dot = el('span', 'farm-step' + (reached ? ' reached' : '') + (i === farmViewIdx ? ' viewing' : ''));
+    if (reached) {
+      dot.addEventListener('click', function () { farmViewIdx = i; renderFarm(); });
+    }
+    steps.appendChild(dot);
   });
 
   const list = $('todo-list');
@@ -556,6 +572,36 @@ function renderFarm() {
     list.appendChild(li);
   });
 }
+
+$('farm-prev').addEventListener('click', function () {
+  if (farmViewIdx <= 0) return;
+  farmViewIdx--;
+  renderFarm();
+});
+$('farm-next').addEventListener('click', function () {
+  if (farmViewIdx >= prevFarmCurIdx) return;
+  farmViewIdx++;
+  renderFarm();
+});
+
+// 左右スワイプでも過去の姿をめくれるように（縦スクロールと区別するため終了時の移動量で判定）
+(function setupFarmSwipe() {
+  const scene = $('farm-scene');
+  let sx = 0, sy = 0, tracking = false;
+  scene.addEventListener('pointerdown', function (e) {
+    sx = e.clientX; sy = e.clientY; tracking = true;
+  });
+  scene.addEventListener('pointerup', function (e) {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.clientX - sx;
+    const dy = e.clientY - sy;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) $('farm-next').click(); else $('farm-prev').click();
+    }
+  });
+  scene.addEventListener('pointercancel', function () { tracking = false; });
+})();
 
 $('todo-form').addEventListener('submit', function (e) {
   e.preventDefault();
