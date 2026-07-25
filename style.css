@@ -452,7 +452,9 @@ img.routine-icon { width: 26px; height: 26px; object-fit: contain; }
 .backup-box p { font-size: 13px; margin-bottom: 10px; }
 .backup-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 .drive-help { font-size: 13px; margin-bottom: 10px; line-height: 1.6; }
+.cloud-setup-rows { display: flex; flex-direction: column; gap: 8px; }
 .drive-setup-row { display: flex; gap: 8px; }
+.cloud-setup-rows input,
 .drive-setup-row input {
   flex: 1;
   min-width: 0;
@@ -461,12 +463,6 @@ img.routine-icon { width: 26px; height: 26px; object-fit: contain; }
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
-}
-.drive-change-id {
-  display: block;
-  margin: 10px 0 0 auto;
-  color: #999;
-  border-color: #E2E2DD;
 }
 .storage-status {
   font-size: 13px;

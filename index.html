@@ -175,27 +175,26 @@
     <ul id="routine-list" class="routine-list"></ul>
     <button id="routine-add" class="btn btn-primary">＋ ルーティンを追加</button>
 
-    <h2>Google Driveバックアップ</h2>
+    <h2>自動バックアップ</h2>
     <div class="backup-box">
-      <div id="drive-setup" class="drive-setup">
-        <p class="drive-help">初回のみ、Google CloudでOAuthクライアントIDを取得して貼り付けてください。</p>
-        <div class="drive-setup-row">
-          <input id="drive-client-id" type="text" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off">
-          <button id="drive-save-id" class="btn btn-sm">保存</button>
+      <div id="cloud-setup">
+        <p class="drive-help">Google Apps ScriptのウェブアプリURLと、自分の名前（英数字）を入れると、以後は自動で保存されます。</p>
+        <div class="cloud-setup-rows">
+          <input id="cloud-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+          <div class="drive-setup-row">
+            <input id="cloud-user" type="text" placeholder="名前（例: eri）" maxlength="20" autocomplete="off">
+            <button id="cloud-save-setup" class="btn btn-sm btn-primary">保存</button>
+          </div>
         </div>
       </div>
-      <div id="drive-connect-box" class="hidden">
-        <button id="drive-connect-btn" class="btn btn-primary">Google Driveに接続する</button>
-      </div>
-      <div id="drive-connected-box" class="hidden">
-        <p id="drive-status-text" class="drive-help"></p>
+      <div id="cloud-active" class="hidden">
+        <p id="cloud-status-text" class="drive-help"></p>
         <div class="backup-buttons">
-          <button id="drive-sync-btn" class="btn btn-sm">今すぐ同期</button>
-          <button id="drive-restore-btn" class="btn btn-sm">Driveから復元</button>
-          <button id="drive-disconnect-btn" class="btn btn-sm">切断</button>
+          <button id="cloud-sync-btn" class="btn btn-sm">今すぐ保存</button>
+          <button id="cloud-restore-btn" class="btn btn-sm">復元</button>
+          <button id="cloud-disconnect-btn" class="btn btn-sm">やめる</button>
         </div>
       </div>
-      <button id="drive-change-id" class="btn btn-sm drive-change-id">クライアントIDを変更</button>
     </div>
 
     <h2>端末内バックアップ</h2>
@@ -303,7 +302,6 @@
   </form>
 </dialog>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="app.js"></script>
 <script src="drive.js"></script>
 </body>
