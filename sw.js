@@ -1,11 +1,12 @@
 'use strict';
 
-const CACHE = 'routine-board-v4';
+const CACHE = 'routine-board-v5';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './drive.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

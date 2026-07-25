@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -191,6 +191,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (typeof scheduleDriveSync === 'function') scheduleDriveSync();
 }
 
 let state = loadState();
@@ -1099,6 +1100,21 @@ function renderBackupBanner() {
     banner.classList.add('hidden');
     return;
   }
+
+  // Google Drive接続中は、そちらの同期状況だけを見る（端末エクスポートの催促と混在させない）
+  const driveCfg = (typeof loadDriveConfig === 'function') ? loadDriveConfig() : {};
+  if (driveCfg.connected) {
+    const diff = driveCfg.lastSync
+      ? Math.floor((Date.now() - new Date(driveCfg.lastSync).getTime()) / 86400000)
+      : Infinity;
+    if (diff < BACKUP_NAG_DAYS) { banner.classList.add('hidden'); return; }
+    $('backup-banner-text').textContent = driveCfg.lastSync
+      ? 'Google Driveへの同期が ' + diff + ' 日止まっています。設定を確認してください。'
+      : 'Google Drive接続後、まだ一度も同期できていません。';
+    banner.classList.remove('hidden');
+    return;
+  }
+
   const last = state.meta.lastExport;
   let msg = null;
   if (!last) {
