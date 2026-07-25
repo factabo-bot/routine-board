@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -1071,7 +1071,7 @@ function renderBackupStatus() {
   $('backup-status').textContent = msg;
 }
 
-$('export-btn').addEventListener('click', function () {
+function doExport() {
   state.meta.lastExport = todayStr();
   saveState();
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -1083,7 +1083,35 @@ $('export-btn').addEventListener('click', function () {
   a.remove();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
   renderBackupStatus();
-});
+  renderBackupBanner();
+}
+
+$('export-btn').addEventListener('click', doExport);
+
+// ========== バックアップの催促バナー ==========
+// エクスポートはダウンロードフォルダに残るため、アプリのキャッシュ／ストレージを
+// 消す操作をしても失われない。それが唯一の保存領域の外側にあるコピーになる
+const BACKUP_NAG_DAYS = 7;
+
+function renderBackupBanner() {
+  const banner = $('backup-banner');
+  if (state.routines.length === 0) {
+    banner.classList.add('hidden');
+    return;
+  }
+  const last = state.meta.lastExport;
+  let msg = null;
+  if (!last) {
+    msg = 'まだ一度もバックアップしていません。端末の操作で消えることがあります。';
+  } else {
+    const diff = Math.floor((parseDate(todayStr()) - parseDate(last)) / 86400000);
+    if (diff >= BACKUP_NAG_DAYS) msg = '最後のバックアップから ' + diff + ' 日経っています。';
+  }
+  banner.classList.toggle('hidden', !msg);
+  if (msg) $('backup-banner-text').textContent = msg;
+}
+
+$('backup-banner-btn').addEventListener('click', doExport);
 
 $('import-btn').addEventListener('click', function () { $('import-file').click(); });
 
@@ -1152,6 +1180,7 @@ document.addEventListener('visibilitychange', function () {
   }
   const active = document.querySelector('.tab-btn.active');
   showView(active ? active.dataset.view : 'board');
+  renderBackupBanner();
 });
 
 // 日次自動バックアップ（直近2世代を端末内に保存）
@@ -1216,3 +1245,4 @@ document.querySelectorAll('.mascot-slot').forEach(function (s) { s.appendChild(m
 $('farm-pig').appendChild(mascotImg('pig'));
 $('header-sub').textContent = jpDateLabel(new Date());
 showView('board');
+renderBackupBanner();

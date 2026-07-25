@@ -52,6 +52,26 @@ main {
 .tab-btn span { font-size: 11px; font-weight: 600; }
 .tab-btn.active { color: #111; }
 
+/* ===== バックアップ催促バナー ===== */
+.backup-banner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #FFF3CD;
+  border-bottom: 1.5px solid #E3C558;
+}
+.backup-banner-text, #backup-banner-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B5300;
+  line-height: 1.5;
+}
+#backup-banner-btn { flex: 0 0 auto; }
+
 /* ===== 日付ストリップ ===== */
 .date-strip {
   position: relative;
