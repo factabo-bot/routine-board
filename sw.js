@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'routine-board-v6';
+const CACHE = 'routine-board-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -43,6 +43,18 @@ const ASSETS = [
   './assets/farm/tourism.png',
   './assets/challenge/cake.png',
   './assets/challenge/cake-party.png',
+  './assets/dragon/fire.png',
+  './assets/dragon/water.png',
+  './assets/dragon/leaf.png',
+  './assets/dragon/wind.png',
+  './assets/dragon/thunder.png',
+  './assets/dragon/ice.png',
+  './assets/dragon/moon.png',
+  './assets/dragon/sun.png',
+  './assets/dragon/flowerd.png',
+  './assets/dragon/star.png',
+  './assets/dragon/rainbow.png',
+  './assets/dragon/tomatod.png',
   './assets/bg/meadow.png',
   './assets/bg/flower.png',
   './assets/bg/forest.png',
