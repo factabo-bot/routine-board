@@ -65,12 +65,49 @@ const DRAGONS = [
   { key: 'tomatod', label: 'トマト' },
 ];
 
+// トマトどうぶつ（assets/tomato-zoo/<key>.png）。どうぶつタブに続けて並ぶ特別版
+const TOMATO_ZOO_COST = 15;
+const TOMATO_ZOO = [
+  { key: 't_dog', label: 'トマトいぬ' },
+  { key: 't_cat', label: 'トマトねこ' },
+  { key: 't_rabbit', label: 'トマトうさぎ' },
+  { key: 't_bear', label: 'トマトくま' },
+  { key: 't_panda', label: 'トマトぱんだ' },
+  { key: 't_penguin', label: 'トマトぺんぎん' },
+  { key: 't_squirrel', label: 'トマトりす' },
+  { key: 't_hedgehog', label: 'トマトはりねずみ' },
+  { key: 't_frog', label: 'トマトかえる' },
+  { key: 't_sheep', label: 'トマトひつじ' },
+  { key: 't_bird', label: 'トマトことり' },
+  { key: 't_mouse', label: 'トマトねずみ' },
+];
+
+// 野菜ドラゴン（assets/veggie/<key>.png）。ドラゴンタブに続けて並ぶ
+const VEGGIE_DRAGONS = [
+  { key: 'cucumber', label: 'きゅうり' },
+  { key: 'eggplant', label: 'なす' },
+  { key: 'carrot', label: 'にんじん' },
+  { key: 'corn', label: 'とうもろこし' },
+  { key: 'pumpkin', label: 'かぼちゃ' },
+  { key: 'pepper', label: 'ピーマン' },
+  { key: 'radish', label: 'だいこん' },
+  { key: 'onion', label: 'たまねぎ' },
+  { key: 'broccoli', label: 'ブロッコリー' },
+  { key: 'potato', label: 'じゃがいも' },
+  { key: 'sweetpotato', label: 'さつまいも' },
+  { key: 'lettuce', label: 'レタス' },
+];
+
 // 飾りエリアに置けるもの（動物とドラゴン）をkeyから引く
 function decoItem(key) {
   const a = ZOO_ANIMALS.find(function (x) { return x.key === key; });
   if (a) return { key: key, label: a.label, src: 'assets/zoo/' + key + '.png', cost: ZOO_COST };
+  const t = TOMATO_ZOO.find(function (x) { return x.key === key; });
+  if (t) return { key: key, label: t.label, src: 'assets/tomato-zoo/' + key + '.png', cost: TOMATO_ZOO_COST };
   const d = DRAGONS.find(function (x) { return x.key === key; });
   if (d) return { key: key, label: d.label + 'ドラゴン', src: 'assets/dragon/' + key + '.png', cost: DRAGON_COST };
+  const v = VEGGIE_DRAGONS.find(function (x) { return x.key === key; });
+  if (v) return { key: key, label: v.label + 'ドラゴン', src: 'assets/veggie/' + key + '.png', cost: DRAGON_COST };
   return null;
 }
 
@@ -508,8 +545,8 @@ function renderZoo() {
   $('zoo-tab-animal').classList.toggle('active', zooTab === 'animal');
   $('zoo-tab-dragon').classList.toggle('active', zooTab === 'dragon');
   $('zoo-tab-bg').classList.toggle('active', zooTab === 'bg');
-  if (zooTab === 'animal') renderZooCollection(ZOO_ANIMALS, 'どうぶつ');
-  else if (zooTab === 'dragon') renderZooCollection(DRAGONS, 'ドラゴン');
+  if (zooTab === 'animal') renderZooCollection(ZOO_ANIMALS.concat(TOMATO_ZOO), 'どうぶつ');
+  else if (zooTab === 'dragon') renderZooCollection(DRAGONS.concat(VEGGIE_DRAGONS), 'ドラゴン');
   else renderZooBackgrounds();
 }
 
@@ -517,10 +554,14 @@ function renderZoo() {
 function renderZooCollection(list, kindLabel) {
   const pts = zooAvailablePoints();
   const ownedCount = list.filter(function (x) { return state.zoo.owned.includes(x.key); }).length;
-  const cost = decoItem(list[0].key).cost;
+  // シリーズごとに値段が違うので、幅がある場合は範囲で示す
+  const costs = list.map(function (x) { return decoItem(x.key).cost; });
+  const lo = Math.min.apply(null, costs);
+  const hi = Math.max.apply(null, costs);
+  const costText = (lo === hi) ? (lo + 'pt') : (lo + '〜' + hi + 'pt');
   $('zoo-status').textContent =
     'ポイント ' + pts + ' pt ・ なかま ' + ownedCount + ' / ' + list.length +
-    '\nルーティン1つ達成で1pt。' + cost + 'ptで好きな' + kindLabel + 'をタップしてむかえられます。';
+    '\nルーティン1つ達成で1pt。' + costText + 'で好きな' + kindLabel + 'をタップしてむかえられます。';
   const grid = $('zoo-grid');
   grid.className = 'zoo-grid';
   grid.textContent = '';
