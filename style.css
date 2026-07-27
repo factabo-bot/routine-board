@@ -250,6 +250,11 @@ main {
   height: 44px;
   animation: mascot-hop 1.2s ease-in-out .2s infinite;
 }
+.mascot-guest {
+  width: 38px;
+  height: 38px;
+  animation: mascot-hop 1.2s ease-in-out infinite;
+}
 @keyframes mascot-hop {
   0%, 55%, 100% { transform: translateY(0); }
   30% { transform: translateY(-10px); }
@@ -681,7 +686,9 @@ span.sr-icon { font-size: 17px; line-height: 1; flex: 0 0 auto; }
   position: relative;
   height: 150px;
   margin-top: 12px;
-  background: #FBFAF6;
+  background-color: #FBFAF6;
+  background-size: cover;
+  background-position: center;
   border: 1.5px solid #E2E2DD;
   border-radius: 12px;
   overflow: hidden;
@@ -731,6 +738,36 @@ span.sr-icon { font-size: 17px; line-height: 1; flex: 0 0 auto; }
   border-width: 2px;
 }
 .zoo-cell img { width: 100%; height: 100%; object-fit: contain; }
+.zoo-tabs { margin: 10px 0 0; }
+
+/* 背景ずかん */
+.bg-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.bg-cell {
+  border: 1.5px solid #DDDDD8;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
+  opacity: .45;
+  display: flex;
+  flex-direction: column;
+}
+.bg-cell img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  display: block;
+}
+.bg-label {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 2px;
+  color: #333;
+}
+.bg-cell.owned { opacity: 1; }
+.bg-cell.using { border-color: #2FBF71; border-width: 2px; }
+.bg-cell.using .bg-label { background: #2FBF71; color: #fff; }
 
 /* ===== ケーキチャレンジ ===== */
 .cake-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
