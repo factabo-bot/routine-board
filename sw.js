@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'routine-board-v7';
+const CACHE = 'routine-board-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -55,6 +55,30 @@ const ASSETS = [
   './assets/dragon/star.png',
   './assets/dragon/rainbow.png',
   './assets/dragon/tomatod.png',
+  './assets/veggie/cucumber.png',
+  './assets/veggie/eggplant.png',
+  './assets/veggie/carrot.png',
+  './assets/veggie/corn.png',
+  './assets/veggie/pumpkin.png',
+  './assets/veggie/pepper.png',
+  './assets/veggie/radish.png',
+  './assets/veggie/onion.png',
+  './assets/veggie/broccoli.png',
+  './assets/veggie/potato.png',
+  './assets/veggie/sweetpotato.png',
+  './assets/veggie/lettuce.png',
+  './assets/tomato-zoo/t_dog.png',
+  './assets/tomato-zoo/t_cat.png',
+  './assets/tomato-zoo/t_rabbit.png',
+  './assets/tomato-zoo/t_bear.png',
+  './assets/tomato-zoo/t_panda.png',
+  './assets/tomato-zoo/t_penguin.png',
+  './assets/tomato-zoo/t_squirrel.png',
+  './assets/tomato-zoo/t_hedgehog.png',
+  './assets/tomato-zoo/t_frog.png',
+  './assets/tomato-zoo/t_sheep.png',
+  './assets/tomato-zoo/t_bird.png',
+  './assets/tomato-zoo/t_mouse.png',
   './assets/bg/meadow.png',
   './assets/bg/flower.png',
   './assets/bg/forest.png',
