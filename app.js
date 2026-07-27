@@ -408,7 +408,7 @@ function zooAvailablePoints() {
     const bg = BG_LIST.find(function (b) { return b.key === k; });
     return bg && !bg.free;
   }).length;
-  return zooEarnedPoints() - state.zoo.owned.length * ZOO_COST - paidBg * BG_COST;
+  return Math.max(0, zooEarnedPoints() - state.zoo.owned.length * ZOO_COST - paidBg * BG_COST);
 }
 
 function zooRandomPos() {
