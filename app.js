@@ -48,6 +48,32 @@ const ZOO_ANIMALS = [
   { key: 'mouse', label: 'ねずみ' },
 ];
 
+// どらごんずかん（assets/dragon/<key>.png）。動物より少し高め
+const DRAGON_COST = 25;
+const DRAGONS = [
+  { key: 'fire', label: 'ほのお' },
+  { key: 'water', label: 'みず' },
+  { key: 'leaf', label: 'このは' },
+  { key: 'wind', label: 'かぜ' },
+  { key: 'thunder', label: 'かみなり' },
+  { key: 'ice', label: 'こおり' },
+  { key: 'moon', label: 'つき' },
+  { key: 'sun', label: 'たいよう' },
+  { key: 'flowerd', label: 'はな' },
+  { key: 'star', label: 'ほし' },
+  { key: 'rainbow', label: 'にじ' },
+  { key: 'tomatod', label: 'トマト' },
+];
+
+// 飾りエリアに置けるもの（動物とドラゴン）をkeyから引く
+function decoItem(key) {
+  const a = ZOO_ANIMALS.find(function (x) { return x.key === key; });
+  if (a) return { key: key, label: a.label, src: 'assets/zoo/' + key + '.png', cost: ZOO_COST };
+  const d = DRAGONS.find(function (x) { return x.key === key; });
+  if (d) return { key: key, label: d.label + 'ドラゴン', src: 'assets/dragon/' + key + '.png', cost: DRAGON_COST };
+  return null;
+}
+
 // かざり背景（assets/bg/<key>.png）。1枚目の「くさはら」は最初から持っている
 const BG_COST = 15;
 const BG_LIST = [
@@ -121,13 +147,13 @@ function celebrationRow(seed) {
   return row;
 }
 
-function guestEl(animal, i) {
+function guestEl(item, i) {
   const span = el('span', 'mascot mascot-guest');
   // 少しずつ跳ねるタイミングをずらす
   span.style.animationDelay = (0.1 + i * 0.15) + 's';
   const img = el('img');
-  img.src = 'assets/zoo/' + animal.key + '.png';
-  img.alt = animal.label;
+  img.src = item.src;
+  img.alt = item.label;
   span.appendChild(img);
   return span;
 }
@@ -146,8 +172,8 @@ function pickGuests(seed, max) {
     h = (h * 1103515245 + 12345) >>> 0;
     const idx = h % pool.length;
     const key = pool.splice(idx, 1)[0];
-    const animal = ZOO_ANIMALS.find(function (a) { return a.key === key; });
-    if (animal) picked.push(animal);
+    const item = decoItem(key);
+    if (item) picked.push(item);
   }
   return picked;
 }
@@ -403,12 +429,18 @@ function zooEarnedPoints() {
 }
 
 function zooAvailablePoints() {
+  // 持っているもの（動物・ドラゴン）の値段を合算して引く
+  let spent = 0;
+  state.zoo.owned.forEach(function (k) {
+    const item = decoItem(k);
+    if (item) spent += item.cost;
+  });
   // 無料の1枚目を除いた背景の購入分も差し引く
   const paidBg = (state.zoo.bgOwned || []).filter(function (k) {
     const bg = BG_LIST.find(function (b) { return b.key === k; });
     return bg && !bg.free;
   }).length;
-  return Math.max(0, zooEarnedPoints() - state.zoo.owned.length * ZOO_COST - paidBg * BG_COST);
+  return Math.max(0, zooEarnedPoints() - spent - paidBg * BG_COST);
 }
 
 function zooRandomPos() {
@@ -424,8 +456,8 @@ function renderDeco() {
   area.textContent = '';
   let dirty = false;
   state.zoo.owned.forEach(function (key) {
-    const animal = ZOO_ANIMALS.find(function (a) { return a.key === key; });
-    if (!animal) return;
+    const item = decoItem(key);
+    if (!item) return;
     if (!state.zoo.pos[key]) {
       state.zoo.pos[key] = zooRandomPos();
       dirty = true;
@@ -433,8 +465,8 @@ function renderDeco() {
     const p = state.zoo.pos[key];
     const elm = el('span', 'deco-animal');
     const img = el('img');
-    img.src = 'assets/zoo/' + key + '.png';
-    img.alt = animal.label;
+    img.src = item.src;
+    img.alt = item.label;
     img.draggable = false;
     elm.appendChild(img);
     elm.style.left = p.x + '%';
@@ -474,36 +506,43 @@ let zooTab = 'animal';
 
 function renderZoo() {
   $('zoo-tab-animal').classList.toggle('active', zooTab === 'animal');
+  $('zoo-tab-dragon').classList.toggle('active', zooTab === 'dragon');
   $('zoo-tab-bg').classList.toggle('active', zooTab === 'bg');
-  if (zooTab === 'animal') renderZooAnimals(); else renderZooBackgrounds();
+  if (zooTab === 'animal') renderZooCollection(ZOO_ANIMALS, 'どうぶつ');
+  else if (zooTab === 'dragon') renderZooCollection(DRAGONS, 'ドラゴン');
+  else renderZooBackgrounds();
 }
 
-function renderZooAnimals() {
+// 動物とドラゴンは同じ作り（値段と絵の置き場だけ違う）
+function renderZooCollection(list, kindLabel) {
   const pts = zooAvailablePoints();
+  const ownedCount = list.filter(function (x) { return state.zoo.owned.includes(x.key); }).length;
+  const cost = decoItem(list[0].key).cost;
   $('zoo-status').textContent =
-    'ポイント ' + pts + ' pt ・ なかま ' + state.zoo.owned.length + ' / ' + ZOO_ANIMALS.length +
-    '\nルーティン1つ達成で1pt。' + ZOO_COST + 'ptで好きな動物をタップしてむかえられます。';
+    'ポイント ' + pts + ' pt ・ なかま ' + ownedCount + ' / ' + list.length +
+    '\nルーティン1つ達成で1pt。' + cost + 'ptで好きな' + kindLabel + 'をタップしてむかえられます。';
   const grid = $('zoo-grid');
   grid.className = 'zoo-grid';
   grid.textContent = '';
-  ZOO_ANIMALS.forEach(function (a) {
-    const owned = state.zoo.owned.includes(a.key);
+  list.forEach(function (x) {
+    const item = decoItem(x.key);
+    const owned = state.zoo.owned.includes(x.key);
     const cell = el('button', 'zoo-cell' + (owned ? ' owned' : ''));
     cell.type = 'button';
-    cell.title = a.label;
+    cell.title = item.label;
     const img = el('img');
-    img.src = 'assets/zoo/' + a.key + '.png';
-    img.alt = a.label;
+    img.src = item.src;
+    img.alt = item.label;
     cell.appendChild(img);
     if (!owned) {
       cell.addEventListener('click', function () {
-        if (zooAvailablePoints() < ZOO_COST) {
-          alert('ポイントが足りません（' + ZOO_COST + 'pt 必要）');
+        if (zooAvailablePoints() < item.cost) {
+          alert('ポイントが足りません（' + item.cost + 'pt 必要）');
           return;
         }
-        if (!confirm('「' + a.label + '」を ' + ZOO_COST + 'pt でむかえますか？')) return;
-        state.zoo.owned.push(a.key);
-        state.zoo.pos[a.key] = zooRandomPos();
+        if (!confirm('「' + item.label + '」を ' + item.cost + 'pt でむかえますか？')) return;
+        state.zoo.owned.push(x.key);
+        state.zoo.pos[x.key] = zooRandomPos();
         saveState();
         renderZoo();
         renderDeco();
@@ -556,6 +595,7 @@ function renderZooBackgrounds() {
 }
 
 $('zoo-tab-animal').addEventListener('click', function () { zooTab = 'animal'; renderZoo(); });
+$('zoo-tab-dragon').addEventListener('click', function () { zooTab = 'dragon'; renderZoo(); });
 $('zoo-tab-bg').addEventListener('click', function () { zooTab = 'bg'; renderZoo(); });
 
 $('zoo-open').addEventListener('click', function () {
