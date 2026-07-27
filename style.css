@@ -706,6 +706,11 @@ span.sr-icon { font-size: 17px; line-height: 1; flex: 0 0 auto; }
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+  /* 白フチ＋やわらかい影のシール風。背景の絵柄に紛れず、置いてある感じに見せる */
+  filter:
+    drop-shadow(1px 0 0 #FFFDF8) drop-shadow(-1px 0 0 #FFFDF8)
+    drop-shadow(0 1px 0 #FFFDF8) drop-shadow(0 -1px 0 #FFFDF8)
+    drop-shadow(0 3px 3px rgba(90, 75, 60, .3));
 }
 .zoo-row {
   display: flex;

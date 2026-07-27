@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
