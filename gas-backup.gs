@@ -47,11 +47,46 @@ function doGet(e) {
   }
 }
 
+// 中身があるかの確認（空データで上書きしないための番人）
+function hasContent_(d) {
+  if (!d) return false;
+  function n(o) { return o ? Object.keys(o).length : 0; }
+  return (d.routines && d.routines.length > 0) || n(d.checks) > 0 ||
+    (d.challenge && n(d.challenge.checks) > 0) ||
+    (d.zoo && d.zoo.owned && d.zoo.owned.length > 0) ||
+    (d.todos && d.todos.length > 0) || n(d.memos) > 0;
+}
+
+// その日ぶんの控えを別ファイルで残す（直近7日分だけ保つ）
+function keepDailySnapshot_(user, payload) {
+  var folder = getFolder_();
+  var stamp = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMdd');
+  var name = 'snap_' + user + '_' + stamp + '.json';
+  var it = folder.getFilesByName(name);
+  if (it.hasNext()) { it.next().setContent(payload); }
+  else { folder.createFile(name, payload, MimeType.PLAIN_TEXT); }
+
+  // 古い控えを消す
+  var snaps = [];
+  var all = folder.getFiles();
+  var prefix = 'snap_' + user + '_';
+  while (all.hasNext()) {
+    var f = all.next();
+    if (f.getName().indexOf(prefix) === 0) snaps.push(f);
+  }
+  snaps.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; });
+  for (var i = 7; i < snaps.length; i++) snaps[i].setTrashed(true);
+}
+
 // バックアップの保存（本文にJSONを丸ごとPOST）
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
     var user = String(body.user || 'default').replace(/[^A-Za-z0-9_-]/g, '');
+    // 空データで上書きしない（端末側でデータが消えたときの保険）
+    if (!hasContent_(body.data)) {
+      return json_({ ok: false, error: 'empty data rejected' });
+    }
     var payload = JSON.stringify(body.data);
     var name = 'backup_' + user + '.json';
     var file = getFile_(user);
@@ -60,6 +95,7 @@ function doPost(e) {
     } else {
       getFolder_().createFile(name, payload, MimeType.PLAIN_TEXT);
     }
+    keepDailySnapshot_(user, payload);
     return json_({ ok: true, updated: new Date().toISOString() });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
