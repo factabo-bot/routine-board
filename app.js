@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -1367,20 +1367,43 @@ function renderStorageStatus() {
   const lines = [];
   lines.push('ルーティン ' + state.routines.length + ' 件 ／ 記録日数 ' +
     Object.keys(state.checks).length + ' 日 ／ ToDo ' + state.todos.length + ' 件');
-  const finish = function (persistLine) {
-    lines.push(persistLine);
-    lines.push('※ブラウザのデータ消去では消えます。定期的なエクスポートをおすすめします。');
-    lines.push('アプリのバージョン: ' + APP_VERSION);
-    $('storage-status').textContent = lines.join('\n');
+
+  // データが消える原因を切り分けるための手がかりをまとめて出す
+  const installed = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  lines.push('起動元: ' + (installed ? 'ホーム画面のアイコン（正しい使い方）' : 'ブラウザのタブ（アイコンから開いてください）'));
+
+  // 非同期で分かる情報は後から足す。取得できなくても表示自体は必ず出す
+  let persistLine = '保存領域: 確認中…';
+  let quotaLine = null;
+  const paint = function () {
+    const out = lines.concat([persistLine]);
+    if (quotaLine) out.push(quotaLine);
+    out.push('アプリのバージョン: ' + APP_VERSION);
+    $('storage-status').textContent = out.join('\n');
   };
+  paint();
+
   if (navigator.storage && navigator.storage.persisted) {
     navigator.storage.persisted().then(function (p) {
-      finish(p
+      persistLine = p
         ? '保存領域: 保護あり（容量逼迫による自動削除の対象外）'
-        : '保存領域: 保護なし（ホーム画面へのインストール後に自動で保護されます）');
-    }).catch(function () { finish('保存領域: 状態を確認できませんでした'); });
+        : '保存領域: 保護なし ← データが消える原因になります';
+      paint();
+    }).catch(function () { persistLine = '保存領域: 状態を確認できませんでした'; paint(); });
   } else {
-    finish('保存領域: このブラウザでは保護状態を確認できません');
+    persistLine = '保存領域: このブラウザでは確認できません';
+    paint();
+  }
+
+  if (navigator.storage && navigator.storage.estimate) {
+    navigator.storage.estimate().then(function (e) {
+      if (e && e.quota) {
+        const usedMB = Math.round((e.usage || 0) / 1048576 * 10) / 10;
+        const quotaMB = Math.round(e.quota / 1048576);
+        quotaLine = '使用量: ' + usedMB + ' MB ／ 上限 ' + quotaMB + ' MB';
+        paint();
+      }
+    }).catch(function () {});
   }
 }
 
