@@ -8,7 +8,7 @@ const CLOUD_DEBOUNCE_MS = 4000;
 
 // アプリに埋め込む保存先。ここが入っていれば、端末ごとの設定なしで
 // 最初の1回目から自動でバックアップされる（設定し忘れで守れない事故を防ぐため）
-const DEFAULT_CLOUD_URL = '';
+const DEFAULT_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyu2bb-PMYs1nwAODTPfaiHSyYOX37eonYFiw5d7R6Cdcix9NP_YvM9Fmf2cJvHrysQ1w/exec';
 
 function loadCloudConfig() {
   let cfg;
@@ -176,6 +176,17 @@ async function cloudChooseSlot() {
     if (r && r.ok && r.slots) slots = r.slots;
   } catch (e) {
     return false;
+  }
+
+  // 一覧が取れないとき（GASが古い場合など）は名前を直接入れてもらう
+  if (slots.length === 0) {
+    const name = prompt('バックアップの名前を入れてください。\n' +
+      '前に使っていた名前を入れると、その控えから元に戻せます。', 'eri');
+    if (!name) return false;
+    cfg.user = name.replace(/[^A-Za-z0-9_-]/g, '') || 'user';
+    saveCloudConfig(cfg);
+    renderCloudStatus();
+    return true;
   }
 
   let msg = 'このアプリのデータをどれとして扱いますか？\n\n';
