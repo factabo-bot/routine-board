@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -1324,7 +1324,7 @@ function renderBackupBanner() {
   const last = state.meta.lastExport;
   let msg = null;
   if (!last) {
-    msg = 'まだ一度もバックアップしていません。端末の操作で消えることがあります。';
+    msg = '自動バックアップが未設定です。このままだと消えたときに戻せません。';
   } else {
     const diff = Math.floor((parseDate(todayStr()) - parseDate(last)) / 86400000);
     if (diff >= BACKUP_NAG_DAYS) msg = '最後のバックアップから ' + diff + ' 日経っています。';
@@ -1429,6 +1429,20 @@ document.addEventListener('visibilitychange', function () {
 });
 
 // 日次自動バックアップ（直近2世代を端末内に保存）
+// 端末内の控えは日付ごとに30日分。1日だけでなく「2週間前に戻す」のような
+// さかのぼりにも対応できるようにしている
+const SNAP_PREFIX = STORAGE_KEY + '-snap-';
+const SNAP_KEEP_DAYS = 30;
+
+function snapshotKeys() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf(SNAP_PREFIX) === 0) keys.push(k);
+  }
+  return keys.sort(); // 日付順（古い→新しい）
+}
+
 function takeSnapshot() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1441,18 +1455,45 @@ function takeSnapshot() {
       (data.checks && Object.keys(data.checks).length > 0) ||
       (data.challenge && data.challenge.checks && Object.keys(data.challenge.checks).length > 0) ||
       (data.zoo && data.zoo.owned && data.zoo.owned.length > 0) ||
-      (data.todos && data.todos.length > 0);
+      (data.todos && data.todos.length > 0) ||
+      (data.memos && Object.keys(data.memos).length > 0);
     if (!hasContent) return;
-    const today = todayStr();
-    const prev = JSON.parse(localStorage.getItem(STORAGE_KEY + '-bak1') || 'null');
-    if (prev && prev.date === today) return;
-    if (prev) localStorage.setItem(STORAGE_KEY + '-bak2', JSON.stringify(prev));
-    localStorage.setItem(STORAGE_KEY + '-bak1', JSON.stringify({ date: today, data: data }));
+
+    const key = SNAP_PREFIX + todayStr();
+    if (localStorage.getItem(key)) return; // その日はもう取ってある
+
+    const save = function () { localStorage.setItem(key, raw); };
+    try {
+      save();
+    } catch (e) {
+      // 容量が足りなければ古い控えから捨てて空ける
+      const keys = snapshotKeys();
+      for (let i = 0; i < keys.length; i++) {
+        localStorage.removeItem(keys[i]);
+        try { save(); return; } catch (e2) { /* まだ足りない */ }
+      }
+      return;
+    }
+
+    // 古い控えを片付ける
+    const keys = snapshotKeys();
+    for (let i = 0; i < keys.length - SNAP_KEEP_DAYS; i++) localStorage.removeItem(keys[i]);
+
+    // 旧方式の控えはもう使わないので掃除
+    localStorage.removeItem(STORAGE_KEY + '-bak1');
+    localStorage.removeItem(STORAGE_KEY + '-bak2');
   } catch (e) {}
 }
 
 $('restore-btn').addEventListener('click', function () {
   const cands = [];
+  // 新方式（日付ごと）と旧方式の両方から拾う
+  snapshotKeys().forEach(function (k) {
+    try {
+      const d = JSON.parse(localStorage.getItem(k));
+      if (d) cands.push({ date: k.slice(SNAP_PREFIX.length), data: d });
+    } catch (e) {}
+  });
   ['-bak1', '-bak2'].forEach(function (k) {
     try {
       const v = JSON.parse(localStorage.getItem(STORAGE_KEY + k) || 'null');
@@ -1460,22 +1501,36 @@ $('restore-btn').addEventListener('click', function () {
     } catch (e) {}
   });
   if (cands.length === 0) {
-    alert('バックアップがまだありません（毎日の起動時に自動で作られます）');
+    alert('端末内のバックアップが見つかりませんでした。\n\n' +
+      'ダウンロードフォルダに routine-board-backup-????????.json があれば、\n' +
+      '「インポート」から戻せます。');
     return;
   }
+  // 新しい順・同じ日付は1つだけ
   cands.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
-  for (let i = 0; i < cands.length; i++) {
-    const c = cands[i];
-    const msg = c.date + ' 時点のバックアップ（ルーティン ' + (c.data.routines || []).length +
-      ' 件・記録 ' + Object.keys(c.data.checks || {}).length + ' 日）に戻しますか？\n現在のデータは置き換わります。';
-    if (confirm(msg)) {
-      state = mergeState(c.data);
-      saveState();
-      renderSettings();
-      alert('復元しました');
-      return;
-    }
-  }
+  const seen = {};
+  const list = cands.filter(function (c) {
+    if (seen[c.date]) return false;
+    seen[c.date] = true;
+    return true;
+  });
+
+  const lines = list.map(function (c, i) {
+    return (i + 1) + '. ' + c.date + '（ルーティン ' + (c.data.routines || []).length +
+      '件・記録 ' + Object.keys(c.data.checks || {}).length + '日）';
+  });
+  const ans = prompt('どの日の状態に戻しますか？番号を入れてください。\n' +
+    '（新しい順。現在のデータは置き換わります）\n\n' + lines.join('\n'), '1');
+  if (ans === null) return;
+  const idx = parseInt(ans, 10) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= list.length) { alert('番号が正しくありません'); return; }
+  const c = list[idx];
+  if (!confirm(c.date + ' の状態に戻します。よろしいですか？')) return;
+  state = mergeState(c.data);
+  saveState();
+  renderSettings();
+  showView('board');
+  alert(c.date + ' の状態に復元しました');
 });
 
 if (navigator.storage && navigator.storage.persist) {

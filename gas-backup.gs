@@ -32,8 +32,28 @@ function json_(obj) {
 }
 
 // バックアップの取得（?user=eri）
+// 一覧の取得（?list=1）… 端末が真っさらになったとき、どの控えから戻すか選ぶために使う
 function doGet(e) {
   try {
+    if (e.parameter.list) {
+      var slots = [];
+      var files = getFolder_().getFiles();
+      while (files.hasNext()) {
+        var f = files.next();
+        var m = f.getName().match(/^backup_(.+)\.json$/);
+        if (!m) continue;
+        var info = { user: m[1], updated: f.getLastUpdated().toISOString() };
+        try {
+          var d = JSON.parse(f.getBlob().getDataAsString());
+          info.routines = (d.routines || []).length;
+          info.days = d.checks ? Object.keys(d.checks).length : 0;
+        } catch (e2) {}
+        slots.push(info);
+      }
+      slots.sort(function (a, b) { return a.updated < b.updated ? 1 : -1; });
+      return json_({ ok: true, slots: slots });
+    }
+
     var user = (e.parameter.user || 'default').replace(/[^A-Za-z0-9_-]/g, '');
     var file = getFile_(user);
     if (!file) return json_({ ok: true, empty: true });

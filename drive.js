@@ -6,8 +6,15 @@
 const CLOUD_CONFIG_KEY = 'routine-board-cloud';
 const CLOUD_DEBOUNCE_MS = 4000;
 
+// アプリに埋め込む保存先。ここが入っていれば、端末ごとの設定なしで
+// 最初の1回目から自動でバックアップされる（設定し忘れで守れない事故を防ぐため）
+const DEFAULT_CLOUD_URL = '';
+
 function loadCloudConfig() {
-  try { return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)) || {}; } catch (e) { return {}; }
+  let cfg;
+  try { cfg = JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)) || {}; } catch (e) { cfg = {}; }
+  if (!cfg.url && DEFAULT_CLOUD_URL) cfg.url = DEFAULT_CLOUD_URL;
+  return cfg;
 }
 function saveCloudConfig(cfg) { localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(cfg)); }
 
@@ -156,6 +163,48 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'hidden' && cloudEnabled()) cloudSaveNow(false);
 });
 
+// 保存先はあるが「誰の控えか」が未設定のとき、一覧から選んでもらう。
+// 端末が真っさらになった後もこれ1回で元通りになる（事前設定が要らない）
+async function cloudChooseSlot() {
+  const cfg = loadCloudConfig();
+  if (!cfg.url || cfg.user) return false;
+
+  let slots = [];
+  try {
+    const res = await fetch(cfg.url + '?list=1');
+    const r = await res.json();
+    if (r && r.ok && r.slots) slots = r.slots;
+  } catch (e) {
+    return false;
+  }
+
+  let msg = 'このアプリのデータをどれとして扱いますか？\n\n';
+  slots.forEach(function (s, i) {
+    const when = new Date(s.updated).toLocaleString('ja-JP');
+    msg += (i + 1) + '. ' + s.user + '（' + when + ' ・ ルーティン' + (s.routines || 0) +
+      '件・記録' + (s.days || 0) + '日）\n';
+  });
+  msg += (slots.length + 1) + '. あたらしく始める\n\n番号を入れてください';
+
+  const ans = prompt(msg, '1');
+  if (ans === null) return false;
+  const idx = parseInt(ans, 10) - 1;
+
+  if (idx >= 0 && idx < slots.length) {
+    cfg.user = slots[idx].user;
+    saveCloudConfig(cfg);
+    renderCloudStatus();
+    return true; // 既存の控えを選んだ＝このあと復元する
+  }
+
+  const name = prompt('名前を入れてください（英数字）', 'eri');
+  if (!name) return false;
+  cfg.user = name.replace(/[^A-Za-z0-9_-]/g, '') || 'user';
+  saveCloudConfig(cfg);
+  renderCloudStatus();
+  return false;
+}
+
 // データが空で開かれたとき、クラウドに中身があれば自動で復元をすすめる
 async function cloudOfferRestoreIfEmpty() {
   if (!cloudEnabled() || stateHasContent(state)) return;
@@ -177,10 +226,20 @@ async function cloudOfferRestoreIfEmpty() {
   alert('復元しました');
 }
 
-(function cloudBoot() {
+(async function cloudBoot() {
   const cfg = loadCloudConfig();
   if (cfg.url) $('cloud-url').value = cfg.url;
   if (cfg.user) $('cloud-user').value = cfg.user;
   renderCloudStatus();
-  cloudOfferRestoreIfEmpty();
+
+  // 保存先はあるのに誰の控えか決まっていない＝新しい端末か、消えた直後
+  if (cfg.url && !cfg.user) {
+    await cloudChooseSlot();
+  }
+  await cloudOfferRestoreIfEmpty();
+
+  // まだ一度も保存されていなければ、この場で最初の控えを作る
+  if (cloudEnabled() && !loadCloudConfig().lastSync && stateHasContent(state)) {
+    cloudSaveNow(false);
+  }
 })();
