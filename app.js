@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -1478,11 +1478,22 @@ function takeSnapshot() {
     // 古い控えを片付ける
     const keys = snapshotKeys();
     for (let i = 0; i < keys.length - SNAP_KEEP_DAYS; i++) localStorage.removeItem(keys[i]);
-
-    // 旧方式の控えはもう使わないので掃除
-    localStorage.removeItem(STORAGE_KEY + '-bak1');
-    localStorage.removeItem(STORAGE_KEY + '-bak2');
   } catch (e) {}
+}
+
+// 旧方式（-bak1/-bak2）の控えを日付ごとの控えに引き継ぐ。
+// 消えたデータが残っている可能性があるため、元は決して消さない
+function migrateOldBackups() {
+  ['-bak1', '-bak2'].forEach(function (k) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + k);
+      if (!raw) return;
+      const v = JSON.parse(raw);
+      if (!v || !v.date || !v.data) return;
+      const key = SNAP_PREFIX + v.date;
+      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(v.data));
+    } catch (e) {}
+  });
 }
 
 $('restore-btn').addEventListener('click', function () {
@@ -1536,6 +1547,7 @@ $('restore-btn').addEventListener('click', function () {
 if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist().catch(function () {});
 }
+migrateOldBackups();
 takeSnapshot();
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   navigator.serviceWorker.register('sw.js').catch(function () {});
