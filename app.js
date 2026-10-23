@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -98,8 +98,44 @@ const VEGGIE_DRAGONS = [
   { key: 'lettuce', label: 'レタス' },
 ];
 
+// ハロウィンのなかま（assets/halloween/<key>.png）。期間外でもむかえられる
+const HALLOWEEN_ZOO = [
+  { key: 'h_ghost', label: 'おばけ' },
+  { key: 'h_blackcat', label: 'くろねこ' },
+  { key: 'h_bat', label: 'こうもり' },
+  { key: 'h_pumpkin', label: 'かぼちゃ' },
+  // 絵ができしだい有効にする
+  // { key: 'h_mummy', label: 'ミイラうさぎ' },
+  // { key: 'h_franken', label: 'フランケンくま' },
+  // { key: 'h_owl', label: 'まほうつかいフクロウ' },
+  // { key: 'h_candy', label: 'おかしバケツ' },
+];
+// ハロウィンドラゴンと、同じ仮装のトマトドラゴン
+const HALLOWEEN_DRAGONS = [
+  { key: 'hd_ghost', label: 'おばけドラゴン' },
+  { key: 'htd_ghost', label: 'おばけトマトドラゴン' },
+  // 絵ができしだい有効にする
+  // { key: 'hd_witch', label: 'まじょドラゴン' },
+  // { key: 'htd_witch', label: 'まじょトマトドラゴン' },
+  // { key: 'hd_vampire', label: 'ドラキュラドラゴン' },
+  // { key: 'htd_vampire', label: 'ドラキュラトマトドラゴン' },
+  // { key: 'hd_mummy', label: 'ミイラドラゴン' },
+  // { key: 'htd_mummy', label: 'ミイラトマトドラゴン' },
+];
+
+// ハロウィンの期間（10/15〜10/31）。設定でオフにできる
+function isHalloween() {
+  if (state && state.meta && state.meta.seasonOff) return false;
+  const d = new Date();
+  return d.getMonth() === 9 && d.getDate() >= 15;
+}
+
 // 飾りエリアに置けるもの（動物とドラゴン）をkeyから引く
 function decoItem(key) {
+  const h = HALLOWEEN_ZOO.find(function (x) { return x.key === key; });
+  if (h) return { key: key, label: h.label, src: 'assets/halloween/' + key + '.png', cost: ZOO_COST };
+  const hd = HALLOWEEN_DRAGONS.find(function (x) { return x.key === key; });
+  if (hd) return { key: key, label: hd.label, src: 'assets/halloween/' + key + '.png', cost: DRAGON_COST };
   const a = ZOO_ANIMALS.find(function (x) { return x.key === key; });
   if (a) return { key: key, label: a.label, src: 'assets/zoo/' + key + '.png', cost: ZOO_COST };
   const t = TOMATO_ZOO.find(function (x) { return x.key === key; });
@@ -129,6 +165,9 @@ const BG_LIST = [
   { key: 'sakura', label: 'さくら' },
   { key: 'autumn', label: 'こうよう' },
   { key: 'room', label: 'おへや' },
+  // ハロウィンの期間に開くと無料でもらえる
+  // 絵ができしだい有効にする
+  // { key: 'halloween', label: 'ハロウィンのよる', free: true, season: true },
 ];
 
 // ToDoファームの発展段階（assets/farm/<key>.png）。needは累計完了数
@@ -156,6 +195,8 @@ const MASCOT_SRC = {
 function mascotImg(pose) {
   const img = el('img');
   img.src = MASCOT_SRC[pose] || MASCOT_SRC.normal;
+  // ハロウィンの期間は仮装した姿に（ファイル名は同じで置き場だけ違う）
+  if (isHalloween()) img.src = img.src.replace('assets/', 'assets/halloween/');
   img.alt = '';
   return img;
 }
@@ -296,7 +337,7 @@ function defaultState() {
       checks: {},
       used: 0,
     },
-    meta: { lastExport: null, farmDone: 0 },
+    meta: { lastExport: null, farmDone: 0, seasonOff: false },
   };
 }
 
@@ -545,8 +586,15 @@ function renderZoo() {
   $('zoo-tab-animal').classList.toggle('active', zooTab === 'animal');
   $('zoo-tab-dragon').classList.toggle('active', zooTab === 'dragon');
   $('zoo-tab-bg').classList.toggle('active', zooTab === 'bg');
-  if (zooTab === 'animal') renderZooCollection(ZOO_ANIMALS.concat(TOMATO_ZOO), 'どうぶつ');
-  else if (zooTab === 'dragon') renderZooCollection(DRAGONS.concat(VEGGIE_DRAGONS), 'ドラゴン');
+  // ハロウィンのシリーズは、期間中は先頭・期間外は末尾に並べる
+  const hw = isHalloween();
+  const animals = ZOO_ANIMALS.concat(TOMATO_ZOO);
+  const dragons = DRAGONS.concat(VEGGIE_DRAGONS);
+  if (zooTab === 'animal') {
+    renderZooCollection(hw ? HALLOWEEN_ZOO.concat(animals) : animals.concat(HALLOWEEN_ZOO), 'どうぶつ');
+  } else if (zooTab === 'dragon') {
+    renderZooCollection(hw ? HALLOWEEN_DRAGONS.concat(dragons) : dragons.concat(HALLOWEEN_DRAGONS), 'ドラゴン');
+  }
   else renderZooBackgrounds();
 }
 
@@ -618,6 +666,10 @@ function renderZooBackgrounds() {
         saveState();
         renderZoo();
         renderDeco();
+        return;
+      }
+      if (b.season) {
+        alert('ハロウィンの時期（10/15〜10/31）にアプリを開くともらえます');
         return;
       }
       if (zooAvailablePoints() < BG_COST) {
@@ -1163,7 +1215,25 @@ function renderRoutineList() {
   });
 }
 
+// ハロウィンの期間に初めて開いたら、背景をプレゼントして着せかえる（1回だけ）
+function grantSeasonGift() {
+  if (!isHalloween()) return;
+  if (!BG_LIST.some(function (b) { return b.key === 'halloween'; })) return;
+  if (state.zoo.bgOwned.includes('halloween')) return;
+  state.zoo.bgOwned.push('halloween');
+  state.zoo.bg = 'halloween';
+  saveState();
+}
+
+$('season-toggle').addEventListener('change', function () {
+  state.meta.seasonOff = !$('season-toggle').checked;
+  saveState();
+  // マスコットは起動時に置いているので、開き直して反映する
+  location.reload();
+});
+
 function renderSettings() {
+  $('season-toggle').checked = !state.meta.seasonOff;
   renderRoutineList();
   renderBackupStatus();
   renderStorageStatus();
@@ -1553,6 +1623,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   navigator.serviceWorker.register('sw.js').catch(function () {});
 }
 
+grantSeasonGift();
 document.querySelectorAll('.mascot-slot').forEach(function (s) { s.appendChild(mascotImg('normal')); });
 $('farm-pig').appendChild(mascotImg('pig'));
 $('header-sub').textContent = jpDateLabel(new Date());

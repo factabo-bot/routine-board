@@ -887,3 +887,7 @@ dialog label input {
   gap: 8px;
   margin-top: 18px;
 }
+
+/* 季節のかざり */
+.season-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0 8px; }
+.season-row input { width: 18px; height: 18px; }
