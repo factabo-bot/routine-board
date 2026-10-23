@@ -105,7 +105,7 @@ const HALLOWEEN_ZOO = [
   { key: 'h_bat', label: 'こうもり' },
   // かぼちゃ単体は画風が合わないので外した（10/23）
   // 絵ができしだい有効にする
-  // { key: 'h_frog', label: 'かぼちゃがえる' },
+  { key: 'h_frog', label: 'かぼちゃがえる' },
   // { key: 'h_panda', label: 'ドラキュラぱんだ' },
   // 絵ができしだい有効にする
   // { key: 'h_mummy', label: 'ミイラうさぎ' },
