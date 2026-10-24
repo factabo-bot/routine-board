@@ -181,6 +181,17 @@ const FARM_STAGES = [
   { key: 'stand', label: '直売所オープン', need: 95 },
   { key: 'bighouse', label: '大型温室', need: 125 },
   { key: 'tourism', label: '観光農園', need: 160 },
+  // ここから夢の農園（2026-10-25追加。1日4ほど進むペースで、1段階が2〜5週間）
+  { key: 'castle', label: 'トマトのおしろ', need: 300 },
+  { key: 'cloud', label: 'くものうえの農園', need: 360 },
+  { key: 'balloon', label: 'ききゅうの農園', need: 430 },
+  { key: 'sea', label: 'うみのそこの農園', need: 510 },
+  { key: 'treehouse', label: 'ツリーハウス農園', need: 600 },
+  { key: 'bigtomato', label: 'おおきなトマトのいえ', need: 700 },
+  { key: 'rainbow', label: 'にじのはしの農園', need: 810 },
+  { key: 'moon', label: 'つきの農園', need: 930 },
+  { key: 'station', label: 'うちゅうステーション農園', need: 1060 },
+  { key: 'planet', label: 'トマトのほし', need: 1200 },
 ];
 
 // マスコット（トマトのキャラ・生成画像を背景透過に加工したもの）
@@ -911,7 +922,7 @@ function renderFarm() {
     ratio = (pts - cur.need) / (next.need - cur.need);
     status = 'つぎの「' + next.label + '」まで あと ' + (next.need - pts) + '（累計 ' + pts + '）\nルーティンのチェックとToDoの完了で育ちます';
   } else {
-    status = '観光農園まで到達！（累計 ' + pts + '）';
+    status = cur.label + 'まで到達！（累計 ' + pts + '）';
   }
   $('farm-bar').style.width = Math.round(ratio * 100) + '%';
   $('farm-status').textContent = status;
