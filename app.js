@@ -119,7 +119,7 @@ const HALLOWEEN_DRAGONS = [
   { key: 'htd_witch', label: 'まじょトマトドラゴン' },
   { key: 'hd_vampire', label: 'ドラキュラドラゴン' },
   { key: 'htd_vampire', label: 'ドラキュラトマトドラゴン' },
-  // { key: 'hd_mummy', label: 'ミイラドラゴン' }, // 絵ができしだい有効にする
+  { key: 'hd_mummy', label: 'ミイラドラゴン' },
   { key: 'htd_mummy', label: 'ミイラトマトドラゴン' },
 ];
 
