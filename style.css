@@ -891,3 +891,20 @@ dialog label input {
 /* 季節のかざり */
 .season-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0 8px; }
 .season-row input { width: 18px; height: 18px; }
+
+/* 飾りエリアのページ */
+.deco-nav { width: 28px; height: 28px; z-index: 2; }
+.deco-page-no {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  background: rgba(255, 255, 255, .85);
+  border-radius: 10px;
+  padding: 1px 8px;
+  z-index: 2;
+}
+.deco-move-pages { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }

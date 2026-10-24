@@ -1,7 +1,7 @@
 'use strict';
 
 // ========== 定数 ==========
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 const STORAGE_KEY = 'routine-board-data';
 const COLOR_VALUES = {
   white: '#FFFFFF',
@@ -520,8 +520,58 @@ function zooAvailablePoints() {
   return Math.max(0, zooEarnedPoints() - spent - paidBg * BG_COST);
 }
 
-function zooRandomPos() {
-  return { x: 10 + Math.random() * 80, y: 20 + Math.random() * 60 };
+// ===== 飾りエリアのページ =====
+// 仲間ごとの位置 pos[key] = { x, y, page }。page が無い古いデータは1ページ目。
+// 背景は1ページ目が state.zoo.bg、2ページ目以降は state.zoo.pageBg[i]
+const DECO_MAX_PAGES = 6;
+let decoPage = 0; // 表示中のページ
+
+function zooRandomPos(page) {
+  return { x: 10 + Math.random() * 80, y: 20 + Math.random() * 60, page: page || 0 };
+}
+
+function decoPageOf(key) {
+  const p = state.zoo.pos[key];
+  return (p && p.page) ? p.page : 0;
+}
+
+function decoPageCount() {
+  let n = 1;
+  state.zoo.owned.forEach(function (k) {
+    if (decoItem(k)) n = Math.max(n, decoPageOf(k) + 1);
+  });
+  return n;
+}
+
+function decoPageBg(i) {
+  if (i === 0) return state.zoo.bg;
+  return (state.zoo.pageBg && state.zoo.pageBg[i]) || state.zoo.bg;
+}
+
+function setDecoPageBg(i, key) {
+  if (i === 0) { state.zoo.bg = key; return; }
+  if (!state.zoo.pageBg) state.zoo.pageBg = {};
+  state.zoo.pageBg[i] = key;
+}
+
+// 仲間がいなくなったページを詰める（背景もいっしょに詰める）
+function compactDecoPages() {
+  const n = decoPageCount();
+  const used = [];
+  for (let i = 0; i < n; i++) {
+    const has = state.zoo.owned.some(function (k) { return decoItem(k) && decoPageOf(k) === i; });
+    if (i === 0 || has) used.push(i);
+  }
+  const map = {};
+  used.forEach(function (oldIdx, newIdx) { map[oldIdx] = newIdx; });
+  const newBg = {};
+  used.forEach(function (oldIdx, newIdx) { if (newIdx > 0) newBg[newIdx] = decoPageBg(oldIdx); });
+  state.zoo.owned.forEach(function (k) {
+    const p = state.zoo.pos[k];
+    if (p && p.page) p.page = map[p.page] || 0;
+  });
+  state.zoo.pageBg = newBg;
+  return map;
 }
 
 function renderDeco() {
@@ -529,16 +579,20 @@ function renderDeco() {
   const area = $('deco-area');
   const hasBg = (state.zoo.bgOwned || []).length > 1 || state.zoo.owned.length > 0;
   area.classList.toggle('hidden', !hasBg);
-  area.style.backgroundImage = state.zoo.bg ? "url('assets/bg/" + state.zoo.bg + ".png')" : '';
+  const pages = decoPageCount();
+  decoPage = Math.max(0, Math.min(decoPage, pages - 1));
+  const bg = decoPageBg(decoPage);
+  area.style.backgroundImage = bg ? "url('assets/bg/" + bg + ".png')" : '';
   area.textContent = '';
   let dirty = false;
   state.zoo.owned.forEach(function (key) {
     const item = decoItem(key);
     if (!item) return;
     if (!state.zoo.pos[key]) {
-      state.zoo.pos[key] = zooRandomPos();
+      state.zoo.pos[key] = zooRandomPos(0);
       dirty = true;
     }
+    if (decoPageOf(key) !== decoPage) return;
     const p = state.zoo.pos[key];
     const elm = el('span', 'deco-animal');
     const img = el('img');
@@ -551,27 +605,100 @@ function renderDeco() {
     enableDecoDrag(elm, key);
     area.appendChild(elm);
   });
+
+  // ページが2つ以上あるときだけ、矢印とページ番号を出す
+  if (pages > 1) {
+    const prev = el('button', 'farm-nav farm-nav-l deco-nav', '‹');
+    prev.type = 'button';
+    prev.disabled = decoPage <= 0;
+    prev.addEventListener('click', function () { decoPage--; renderDeco(); });
+    const next = el('button', 'farm-nav farm-nav-r deco-nav', '›');
+    next.type = 'button';
+    next.disabled = decoPage >= pages - 1;
+    next.addEventListener('click', function () { decoPage++; renderDeco(); });
+    area.appendChild(prev);
+    area.appendChild(next);
+    area.appendChild(el('span', 'deco-page-no', (decoPage + 1) + ' / ' + pages));
+  }
   if (dirty) saveState();
 }
 
-// 指でドラッグして好きな位置へ（位置は%で保存）
+// 何もないところを左右にスワイプしてもページを移れる
+(function () {
+  const area = $('deco-area');
+  let sx = null, sy = 0;
+  area.addEventListener('pointerdown', function (e) {
+    sx = (e.target === area) ? e.clientX : null;
+    sy = e.clientY;
+  });
+  area.addEventListener('pointerup', function (e) {
+    if (sx === null) return;
+    const dx = e.clientX - sx, dy = Math.abs(e.clientY - sy);
+    sx = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < dy * 1.5) return;
+    const pages = decoPageCount();
+    const to = decoPage + (dx < 0 ? 1 : -1);
+    if (to < 0 || to >= pages) return;
+    decoPage = to;
+    renderDeco();
+  });
+})();
+
+// 仲間をタップしたら、置くページを選ぶ
+function openDecoMove(key) {
+  const item = decoItem(key);
+  const pages = decoPageCount();
+  const cur = decoPageOf(key);
+  $('deco-move-title').textContent = '「' + item.label + '」をどのページに置きますか？';
+  const box = $('deco-move-pages');
+  box.textContent = '';
+  const choices = [];
+  for (let i = 0; i < pages; i++) choices.push(i);
+  if (pages < DECO_MAX_PAGES) choices.push(pages); // 新しいページ
+  choices.forEach(function (i) {
+    const label = (i === pages) ? '新しいページ' : (i + 1) + 'ページ' + (i === cur ? '（いまここ）' : '');
+    const b = el('button', 'btn' + (i === cur ? '' : ' btn-primary'), label);
+    b.type = 'button';
+    b.disabled = i === cur;
+    b.addEventListener('click', function () {
+      if (i === pages) setDecoPageBg(i, decoPageBg(cur));
+      state.zoo.pos[key] = zooRandomPos(i);
+      const map = compactDecoPages();
+      decoPage = map[i] !== undefined ? map[i] : 0;
+      saveState();
+      $('deco-move-dialog').close();
+      renderDeco();
+    });
+    box.appendChild(b);
+  });
+  $('deco-move-dialog').showModal();
+}
+
+$('deco-move-cancel').addEventListener('click', function () { $('deco-move-dialog').close(); });
+
+// 指でドラッグして好きな位置へ（位置は%で保存）。動かさずに離したらタップ扱い
 function enableDecoDrag(elm, key) {
   elm.addEventListener('pointerdown', function (e) {
     e.preventDefault();
     elm.setPointerCapture(e.pointerId);
     const rect = $('deco-area').getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    let moved = false;
     const move = function (ev) {
+      if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 6) return;
+      moved = true;
       const x = Math.max(7, Math.min(93, (ev.clientX - rect.left) / rect.width * 100));
       const y = Math.max(15, Math.min(85, (ev.clientY - rect.top) / rect.height * 100));
       elm.style.left = x + '%';
       elm.style.top = y + '%';
-      state.zoo.pos[key] = { x: x, y: y };
+      state.zoo.pos[key] = { x: x, y: y, page: decoPageOf(key) };
     };
     const up = function () {
       elm.removeEventListener('pointermove', move);
       elm.removeEventListener('pointerup', up);
       elm.removeEventListener('pointercancel', up);
-      saveState();
+      if (moved) saveState();
+      else openDecoMove(key);
     };
     elm.addEventListener('pointermove', move);
     elm.addEventListener('pointerup', up);
@@ -630,7 +757,7 @@ function renderZooCollection(list, kindLabel) {
         }
         if (!confirm('「' + item.label + '」を ' + item.cost + 'pt でむかえますか？')) return;
         state.zoo.owned.push(x.key);
-        state.zoo.pos[x.key] = zooRandomPos();
+        state.zoo.pos[x.key] = zooRandomPos(decoPage);
         saveState();
         renderZoo();
         renderDeco();
@@ -645,13 +772,14 @@ function renderZooBackgrounds() {
   const owned = state.zoo.bgOwned || [];
   $('zoo-status').textContent =
     'ポイント ' + pts + ' pt ・ はいけい ' + owned.length + ' / ' + BG_LIST.length +
-    '\n' + BG_COST + 'ptで手に入ります。持っている背景はタップで着せかえ。';
+    '\n' + BG_COST + 'ptで手に入ります。持っている背景はタップで着せかえ' +
+    (decoPageCount() > 1 ? '（いま見ている' + (decoPage + 1) + 'ページ目の背景が変わります）。' : '。');
   const grid = $('zoo-grid');
   grid.className = 'zoo-grid bg-grid';
   grid.textContent = '';
   BG_LIST.forEach(function (b) {
     const has = owned.includes(b.key);
-    const using = state.zoo.bg === b.key;
+    const using = decoPageBg(decoPage) === b.key;
     const cell = el('button', 'bg-cell' + (has ? ' owned' : '') + (using ? ' using' : ''));
     cell.type = 'button';
     const img = el('img');
@@ -661,7 +789,7 @@ function renderZooBackgrounds() {
     cell.appendChild(el('span', 'bg-label', b.label));
     cell.addEventListener('click', function () {
       if (has) {
-        state.zoo.bg = b.key;
+        setDecoPageBg(decoPage, b.key);
         saveState();
         renderZoo();
         renderDeco();
@@ -677,7 +805,7 @@ function renderZooBackgrounds() {
       }
       if (!confirm('「' + b.label + '」を ' + BG_COST + 'pt で手に入れますか？')) return;
       state.zoo.bgOwned.push(b.key);
-      state.zoo.bg = b.key;
+      setDecoPageBg(decoPage, b.key);
       saveState();
       renderZoo();
       renderDeco();
