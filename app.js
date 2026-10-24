@@ -104,26 +104,23 @@ const HALLOWEEN_ZOO = [
   { key: 'h_blackcat', label: 'くろねこ' },
   { key: 'h_bat', label: 'こうもり' },
   // かぼちゃ単体は画風が合わないので外した（10/23）
-  // 絵ができしだい有効にする
   { key: 'h_frog', label: 'かぼちゃがえる' },
-  // { key: 'h_panda', label: 'ドラキュラぱんだ' },
-  // 絵ができしだい有効にする
-  // { key: 'h_mummy', label: 'ミイラうさぎ' },
-  // { key: 'h_franken', label: 'フランケンくま' },
-  // { key: 'h_owl', label: 'まほうつかいフクロウ' },
-  // { key: 'h_candy', label: 'おかしバケツ' },
+  { key: 'h_panda', label: 'ドラキュラぱんだ' },
+  { key: 'h_mummy', label: 'ミイラうさぎ' },
+  { key: 'h_franken', label: 'フランケンくま' },
+  { key: 'h_owl', label: 'まほうつかいフクロウ' },
+  // { key: 'h_candy', label: 'おかしバケツ' }, // 物単体は画風が浮くので保留
 ];
 // ハロウィンドラゴンと、同じ仮装のトマトドラゴン
 const HALLOWEEN_DRAGONS = [
   { key: 'hd_ghost', label: 'おばけドラゴン' },
   { key: 'htd_ghost', label: 'おばけトマトドラゴン' },
-  // 絵ができしだい有効にする
-  // { key: 'hd_witch', label: 'まじょドラゴン' },
-  // { key: 'htd_witch', label: 'まじょトマトドラゴン' },
-  // { key: 'hd_vampire', label: 'ドラキュラドラゴン' },
-  // { key: 'htd_vampire', label: 'ドラキュラトマトドラゴン' },
-  // { key: 'hd_mummy', label: 'ミイラドラゴン' },
-  // { key: 'htd_mummy', label: 'ミイラトマトドラゴン' },
+  { key: 'hd_witch', label: 'まじょドラゴン' },
+  { key: 'htd_witch', label: 'まじょトマトドラゴン' },
+  { key: 'hd_vampire', label: 'ドラキュラドラゴン' },
+  { key: 'htd_vampire', label: 'ドラキュラトマトドラゴン' },
+  // { key: 'hd_mummy', label: 'ミイラドラゴン' }, // 絵ができしだい有効にする
+  { key: 'htd_mummy', label: 'ミイラトマトドラゴン' },
 ];
 
 // ハロウィンの期間（10/15〜10/31）。設定でオフにできる
@@ -169,8 +166,7 @@ const BG_LIST = [
   { key: 'autumn', label: 'こうよう' },
   { key: 'room', label: 'おへや' },
   // ハロウィンの期間に開くと無料でもらえる
-  // 絵ができしだい有効にする
-  // { key: 'halloween', label: 'ハロウィンのよる', free: true, season: true },
+  { key: 'halloween', label: 'ハロウィンのよる', free: true, season: true },
 ];
 
 // ToDoファームの発展段階（assets/farm/<key>.png）。needは累計完了数
