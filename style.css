@@ -365,7 +365,7 @@ main {
   justify-content: center;
   gap: 6px;
   /* 20段階を10個ずつ2段に並べる（上段＝現実の農園、下段＝夢の農園） */
-  max-width: 190px;
+  max-width: 160px;
   margin: 8px auto 0;
 }
 .farm-step {
