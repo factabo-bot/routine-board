@@ -209,7 +209,14 @@
     </div>
 
     <h2>季節のかざり</h2>
-    <label class="season-row"><input id="season-toggle" type="checkbox"> ハロウィン（10/15〜10/31）の見た目にする</label>
+    <label class="season-row">見た目
+      <select id="season-select" class="season-select">
+        <option value="auto">自動（時期に合わせる）</option>
+        <option value="halloween">いつもハロウィン</option>
+        <option value="christmas">いつもクリスマス</option>
+        <option value="off">なし</option>
+      </select></label>
+    <p class="season-hint">自動：ハロウィン 10/15〜10/31・クリスマス 12/1〜12/25</p>
 
     <h2>保存状態</h2>
     <p id="storage-status" class="storage-status"></p>

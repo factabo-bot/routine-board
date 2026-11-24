@@ -143,15 +143,27 @@ const CHRISTMAS_DRAGONS = [
   // { key: 'ctd_reindeer', label: 'トナカイトマトドラゴン' },
 ];
 
-// 季節の期間。設定でオフにできる。クリスマスは期間を設けない（なかまはいつでも）
+// 季節の見た目。設定で「自動・いつもハロウィン・いつもクリスマス・なし」から選ぶ
 // mascot: その季節のマスコットの絵があるか（assets/<季節>/mascot-*.png）
+// ※ christmas の mascot は、絵の自動生成（christmas-art/auto_xmas.py）が4枚そろったら true にする
 const SEASONS = {
   halloween: { label: 'ハロウィン', period: '10/15〜10/31', mascot: true },
+  christmas: { label: 'クリスマス', period: '12/1〜12/25', mascot: false },
 };
+// 古いデータ（seasonOff だけ持っている）も読めるようにする
+function seasonLook() {
+  const m = state && state.meta;
+  if (!m) return 'auto';
+  if (m.seasonLook) return m.seasonLook;
+  return m.seasonOff ? 'off' : 'auto';
+}
 function currentSeason() {
-  if (state && state.meta && state.meta.seasonOff) return null;
+  const look = seasonLook();
+  if (look === 'off') return null;
+  if (SEASONS[look]) return look;
   const d = new Date();
   if (d.getMonth() === 9 && d.getDate() >= 15) return 'halloween';
+  if (d.getMonth() === 11 && d.getDate() <= 25) return 'christmas';
   return null;
 }
 
@@ -196,6 +208,8 @@ const BG_LIST = [
   { key: 'room', label: 'おへや' },
   // ハロウィンの期間に開くと無料でもらえる
   { key: 'halloween', label: 'ハロウィンのよる', free: true, season: 'halloween' },
+  // クリスマスの見た目のときに開くと無料でもらえる（絵ができたら自動生成スクリプトがコメントを外す）
+  // { key: 'christmas', label: 'クリスマスのよる', free: true, season: 'christmas' },
 ];
 
 // ToDoファームの発展段階（assets/farm/<key>.png）。needは累計完了数
@@ -753,10 +767,11 @@ function renderZoo() {
   $('zoo-tab-animal').classList.toggle('active', zooTab === 'animal');
   $('zoo-tab-dragon').classList.toggle('active', zooTab === 'dragon');
   $('zoo-tab-bg').classList.toggle('active', zooTab === 'bg');
-  // ハロウィンは期間中は先頭・期間外は末尾。クリスマスは期間なしで、ふだんの仲間のすぐあと
+  // いまの季節のシリーズは先頭。それ以外は、ふだんの仲間のあとにクリスマス→ハロウィン
   const season = currentSeason();
   function withSeason(base, hw, xm) {
     if (season === 'halloween') return hw.concat(base, xm);
+    if (season === 'christmas') return xm.concat(base, hw);
     return base.concat(xm, hw);
   }
   if (zooTab === 'animal') {
@@ -839,7 +854,7 @@ function renderZooBackgrounds() {
         return;
       }
       if (b.season) {
-        alert(SEASONS[b.season].label + 'の時期（' + SEASONS[b.season].period + '）にアプリを開くともらえます');
+        alert(SEASONS[b.season].label + 'の時期（' + SEASONS[b.season].period + '）にアプリを開くか、設定の「季節のかざり」で' + SEASONS[b.season].label + 'を選ぶともらえます');
         return;
       }
       if (zooAvailablePoints() < BG_COST) {
@@ -1396,15 +1411,16 @@ function grantSeasonGift() {
   saveState();
 }
 
-$('season-toggle').addEventListener('change', function () {
-  state.meta.seasonOff = !$('season-toggle').checked;
+$('season-select').addEventListener('change', function () {
+  state.meta.seasonLook = $('season-select').value;
+  state.meta.seasonOff = (state.meta.seasonLook === 'off');
   saveState();
   // マスコットは起動時に置いているので、開き直して反映する
   location.reload();
 });
 
 function renderSettings() {
-  $('season-toggle').checked = !state.meta.seasonOff;
+  $('season-select').value = seasonLook();
   renderRoutineList();
   renderBackupStatus();
   renderStorageStatus();
