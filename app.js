@@ -131,16 +131,16 @@ const CHRISTMAS_ZOO = [
   { key: 'c_cat', label: 'プレゼントねこ' },
   { key: 'c_sheep', label: 'ベルひつじ' },
   { key: 'c_fox', label: 'ニットぼうきつね' },
-  // { key: 'c_squirrel', label: 'リースりす' }, // 絵が未生成（Gemini無料枠の上限）
+  { key: 'c_squirrel', label: 'リースりす' },
   { key: 'c_panda', label: 'ゆきだるまぱんだ' },
 ];
 // クリスマスドラゴンと、同じ衣装のトマトドラゴン
 // 絵が未生成（Gemini無料枠の上限）。できたものからコメントを外す
 const CHRISTMAS_DRAGONS = [
-  // { key: 'cd_santa', label: 'サンタドラゴン' },
-  // { key: 'ctd_santa', label: 'サンタトマトドラゴン' },
-  // { key: 'cd_reindeer', label: 'トナカイドラゴン' },
-  // { key: 'ctd_reindeer', label: 'トナカイトマトドラゴン' },
+  { key: 'cd_santa', label: 'サンタドラゴン' },
+  { key: 'ctd_santa', label: 'サンタトマトドラゴン' },
+  { key: 'cd_reindeer', label: 'トナカイドラゴン' },
+  { key: 'ctd_reindeer', label: 'トナカイトマトドラゴン' },
 ];
 
 // 季節の見た目。設定で「自動・いつもハロウィン・いつもクリスマス・なし」から選ぶ
@@ -148,7 +148,7 @@ const CHRISTMAS_DRAGONS = [
 // ※ christmas の mascot は、絵の自動生成（christmas-art/auto_xmas.py）が4枚そろったら true にする
 const SEASONS = {
   halloween: { label: 'ハロウィン', period: '10/15〜10/31', mascot: true },
-  christmas: { label: 'クリスマス', period: '12/1〜12/25', mascot: false },
+  christmas: { label: 'クリスマス', period: '12/1〜12/25', mascot: true },
 };
 // 古いデータ（seasonOff だけ持っている）も読めるようにする
 function seasonLook() {
@@ -209,7 +209,7 @@ const BG_LIST = [
   // ハロウィンの期間に開くと無料でもらえる
   { key: 'halloween', label: 'ハロウィンのよる', free: true, season: 'halloween' },
   // クリスマスの見た目のときに開くと無料でもらえる（絵ができたら自動生成スクリプトがコメントを外す）
-  // { key: 'christmas', label: 'クリスマスのよる', free: true, season: 'christmas' },
+  { key: 'christmas', label: 'クリスマスのよる', free: true, season: 'christmas' },
 ];
 
 // ToDoファームの発展段階（assets/farm/<key>.png）。needは累計完了数
