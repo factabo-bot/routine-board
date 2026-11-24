@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'routine-board-v8';
+const CACHE = 'routine-board-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -129,7 +129,7 @@ self.addEventListener('activate', function (e) {
     caches.keys()
       .then(function (keys) {
         return Promise.all(
-          keys.filter(function (k) { return k !== CACHE; })
+          keys.filter(function (k) { return k.indexOf('routine-board') === 0 && k !== CACHE; })
               .map(function (k) { return caches.delete(k); })
         );
       })
