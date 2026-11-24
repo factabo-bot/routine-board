@@ -731,6 +731,52 @@ function openDecoMove(key) {
 
 $('deco-move-cancel').addEventListener('click', function () { $('deco-move-dialog').close(); });
 
+// キャラを大きく見る。from: 'zukan'（ずかんから）/ 'deco'（飾りエリアから）
+let zoomAction = null;
+function openZoom(key, from) {
+  const item = decoItem(key);
+  if (!item) return;
+  const owned = state.zoo.owned.includes(key);
+  $('zoom-img').src = item.src;
+  $('zoom-img').alt = item.label;
+  $('zoom-name').textContent = item.label;
+  const act = $('zoom-action');
+  act.hidden = true;
+  act.disabled = false;
+  zoomAction = null;
+  if (from === 'deco') {
+    $('zoom-info').textContent = (decoPageOf(key) + 1) + 'ページにいます';
+    act.textContent = 'ページを移す';
+    act.hidden = false;
+    zoomAction = function () { $('zoom-dialog').close(); openDecoMove(key); };
+  } else if (owned) {
+    $('zoom-info').textContent = 'なかまになっています';
+  } else {
+    const pts = zooAvailablePoints();
+    act.textContent = 'むかえる（' + item.cost + 'pt）';
+    act.hidden = false;
+    if (pts < item.cost) {
+      $('zoom-info').textContent = 'あと ' + (item.cost - pts) + 'pt でむかえられます（いま ' + pts + 'pt）';
+      act.disabled = true;
+    } else {
+      $('zoom-info').textContent = item.cost + 'pt でむかえられます（いま ' + pts + 'pt）';
+      zoomAction = function () {
+        state.zoo.owned.push(key);
+        state.zoo.pos[key] = zooRandomPos(decoPage);
+        saveState();
+        $('zoom-dialog').close();
+        renderZoo();
+        renderDeco();
+      };
+    }
+  }
+  $('zoom-dialog').showModal();
+}
+$('zoom-action').addEventListener('click', function () { if (zoomAction) zoomAction(); });
+$('zoom-close').addEventListener('click', function () { $('zoom-dialog').close(); });
+// 絵の外（暗いところ）を押しても閉じる
+$('zoom-dialog').addEventListener('click', function (e) { if (e.target === $('zoom-dialog')) $('zoom-dialog').close(); });
+
 // 指でドラッグして好きな位置へ（位置は%で保存）。動かさずに離したらタップ扱い
 function enableDecoDrag(elm, key) {
   elm.addEventListener('pointerdown', function (e) {
@@ -753,7 +799,7 @@ function enableDecoDrag(elm, key) {
       elm.removeEventListener('pointerup', up);
       elm.removeEventListener('pointercancel', up);
       if (moved) saveState();
-      else openDecoMove(key);
+      else openZoom(key, 'deco');
     };
     elm.addEventListener('pointermove', move);
     elm.addEventListener('pointerup', up);
@@ -807,20 +853,8 @@ function renderZooCollection(list, kindLabel) {
     img.src = item.src;
     img.alt = item.label;
     cell.appendChild(img);
-    if (!owned) {
-      cell.addEventListener('click', function () {
-        if (zooAvailablePoints() < item.cost) {
-          alert('ポイントが足りません（' + item.cost + 'pt 必要）');
-          return;
-        }
-        if (!confirm('「' + item.label + '」を ' + item.cost + 'pt でむかえますか？')) return;
-        state.zoo.owned.push(x.key);
-        state.zoo.pos[x.key] = zooRandomPos(decoPage);
-        saveState();
-        renderZoo();
-        renderDeco();
-      });
-    }
+    // 押したら大きく見せる。持っていなければ、その画面からむかえられる
+    cell.addEventListener('click', function () { openZoom(x.key, 'zukan'); });
     grid.appendChild(cell);
   });
 }
